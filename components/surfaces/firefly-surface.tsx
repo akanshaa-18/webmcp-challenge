@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useMission } from "@/components/mission-provider";
 import { ToolRegistrationStatus } from "@/components/tool-registration-status";
@@ -95,72 +96,91 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
     ]);
 
   const localStatus = useWebMcpTools(localTools);
+  const hasGenerated = missionStore.files.some((file) => file.id === "kaftan-logo-background-v1");
 
   return (
     <div className="surface">
-      <header>
-        <h1 className="section-title">Adobe Firefly</h1>
-        <p className="muted">Local execution surface for deterministic background changes.</p>
+      <header className="hero">
+        <p className="small-note">Adobe Firefly</p>
+        <h1 className="hero-title">Background transformation</h1>
+        <p className="hero-subtitle">
+          Create a dark premium textile background while preserving the approved Kaftan logo.
+        </p>
       </header>
 
-      <ToolRegistrationStatus
-        available={globalStatus.available}
-        registeredTools={globalStatus.registeredTools}
-      />
-      <ToolRegistrationStatus available={localStatus.available} registeredTools={localStatus.registeredTools} />
-
       {!handoff ? (
-        <p className="status-error">
-          Missing handoff context. Open this route through prepare_handoff or include ?handoff=&lt;id&gt;.
-        </p>
+        <p className="status-error">Context carried from Creative Cloud is required to continue.</p>
       ) : (
-        <section>
-          <h2 className="section-title">Handoff context received</h2>
-          <p>
-            <strong>Project:</strong> Kaftan
-          </p>
-          <p>
-            <strong>Source asset:</strong> {handoff.assetIds.join(", ")}
-          </p>
-          <p>
-            <strong>Task:</strong> {handoff.task}
-          </p>
-          <p>
-            <strong>User goal:</strong> {handoff.userGoal}
-          </p>
-          <p>
-            <strong>Constraints received:</strong>{" "}
-            {Object.entries(handoff.constraints)
-              .filter(([, value]) => value)
-              .map(([key]) => key)
-              .join(", ")}
-          </p>
-          <p>
-            <strong>Handoff ID:</strong> {handoff.handoffId}
-          </p>
-          <p>
-            <strong>Completed previous steps:</strong>{" "}
-            {handoff.previousSteps.length ? handoff.previousSteps.join(", ") : "None"}
-          </p>
+        <section className="split">
+          <article className="preview-card">
+            <h2 className="section-title">Before</h2>
+            <Image
+              src="/demo-assets/kaftan-logo-final.svg"
+              alt="Kaftan logo source"
+              width={720}
+              height={420}
+              style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
+            />
+            <p className="small-note" style={{ marginTop: "8px" }}>
+              Approved source asset
+            </p>
+          </article>
+          <article className="preview-card">
+            <h2 className="section-title">After</h2>
+            {hasGenerated ? (
+              <Image
+                src="/demo-assets/kaftan-logo-background-v1.svg"
+                alt="Kaftan background variation"
+                width={720}
+                height={420}
+                style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
+              />
+            ) : (
+              <div className="preview-placeholder">
+                <div>
+                  <strong>Pending transformation</strong>
+                  <p className="small-note">Ready to generate variation.</p>
+                </div>
+              </div>
+            )}
+            <p className="small-note" style={{ marginTop: "8px" }}>
+              {hasGenerated ? "Generated background variation ready." : "Awaiting tool execution."}
+            </p>
+          </article>
         </section>
       )}
 
-      <section>
-        <h2 className="section-title">Current mission output</h2>
-        <p>
-          <strong>Current asset:</strong> {missionStore.currentAsset?.id}
-        </p>
-        <p>
-          <strong>Completed steps:</strong>{" "}
-          {missionStore.mission.completedSteps.length
-            ? missionStore.mission.completedSteps.join(", ")
-            : "None yet"}
-        </p>
+      <section className="timeline-list">
+        <div className="timeline-item">Context carried from Creative Cloud</div>
+        <div className="timeline-item">Current mission asset: {missionStore.currentAsset?.id}</div>
       </section>
 
-      <Link className="button-link" href="/express">
-        Continue to Express
-      </Link>
+      <div className="badge-row">
+        <span className="status-badge">Continue in Adobe Express</span>
+        <span className="status-badge">Using Firefly result</span>
+        <Link className="button-link" href="/express">
+          Continue to Express
+        </Link>
+      </div>
+
+      <details className="details-pane">
+        <summary>View handoff details</summary>
+        <div style={{ marginTop: "10px", display: "grid", gap: "10px" }}>
+          <ToolRegistrationStatus
+            available={globalStatus.available}
+            registeredTools={globalStatus.registeredTools}
+          />
+          <ToolRegistrationStatus available={localStatus.available} registeredTools={localStatus.registeredTools} />
+          {handoff ? (
+            <div className="code-block">
+              Source: {handoff.assetIds.join(", ")}
+              {"\n"}Task: {handoff.task}
+              {"\n"}Goal: {handoff.userGoal}
+              {"\n"}Completed steps: {handoff.previousSteps.join(", ") || "None"}
+            </div>
+          ) : null}
+        </div>
+      </details>
     </div>
   );
 }

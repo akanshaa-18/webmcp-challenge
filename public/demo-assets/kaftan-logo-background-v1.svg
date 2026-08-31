@@ -1,0 +1,17 @@
+<svg width="720" height="420" viewBox="0 0 720 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="420" rx="24" fill="#0F172A"/>
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="720" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E1B4B"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="656" height="356" rx="20" fill="url(#g1)" stroke="#374151"/>
+  <circle cx="160" cy="210" r="66" fill="#60A5FA"/>
+  <path d="M120 210H200" stroke="#DBEAFE" stroke-width="8" stroke-linecap="round"/>
+  <path d="M160 170V250" stroke="#DBEAFE" stroke-width="8" stroke-linecap="round"/>
+  <text x="260" y="190" fill="#E2E8F0" font-size="46" font-family="Arial, Helvetica, sans-serif" font-weight="700">KAFTAN</text>
+  <text x="260" y="230" fill="#94A3B8" font-size="20" font-family="Arial, Helvetica, sans-serif">Firefly Background Variation</text>
+  <rect x="260" y="254" width="180" height="34" rx="17" fill="#172554" stroke="#60A5FA"/>
+  <text x="279" y="276" fill="#BFDBFE" font-size="16" font-family="Arial, Helvetica, sans-serif">Generated Result</text>
+</svg>

@@ -3,7 +3,25 @@ import { toolManifests } from "@/lib/capability-registry";
 export default function CapabilitiesPage() {
   return (
     <div className="surface">
-      <h1 className="section-title">Capability registry</h1>
+      <header className="hero">
+        <p className="small-note">Developer / Judge View</p>
+        <h1 className="hero-title">Capability registry</h1>
+        <p className="hero-subtitle">DISCOVER GLOBALLY → EXECUTE LOCALLY → RESUME SEAMLESSLY</p>
+      </header>
+      <section className="split">
+        <article className="preview-card">
+          <h2 className="section-title">Global capability discovery</h2>
+          <p className="small-note">
+            Universal tooling finds what to do next and hands off structured context.
+          </p>
+        </article>
+        <article className="preview-card">
+          <h2 className="section-title">Surface-owned execution</h2>
+          <p className="small-note">
+            Each product surface registers and executes its own local tools with route-level lifecycle.
+          </p>
+        </article>
+      </section>
       <table className="table">
         <thead>
           <tr>

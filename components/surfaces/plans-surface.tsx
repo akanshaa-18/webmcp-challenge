@@ -127,53 +127,53 @@ export function PlansSurface() {
 
   return (
     <div className="surface">
-      <header>
-        <h1 className="section-title">Adobe Plans</h1>
-        <p className="muted">Demo plan data for WebMCP prototype</p>
-        <p>
-          <strong>Meera</strong> • Student • Bangalore, India
-        </p>
+      <header className="hero">
+        <p className="small-note">Adobe Plans</p>
+        <h1 className="hero-title">Find the right Creative Cloud plan</h1>
+        <p className="hero-subtitle">Demo plan data for WebMCP prototype</p>
+        <div className="badge-row">
+          <span className="status-badge">
+            <strong>Meera</strong> · Student · Bangalore, India
+          </span>
+          <span className="status-badge">Region: IN</span>
+        </div>
       </header>
 
-      <ToolRegistrationStatus
-        available={globalStatus.available}
-        registeredTools={globalStatus.registeredTools}
-      />
-      <ToolRegistrationStatus available={localStatus.available} registeredTools={localStatus.registeredTools} />
-
       <section>
-        <h2 className="section-title">Demo plan cards</h2>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Plan</th>
-              <th>Audience</th>
-              <th>Price</th>
-              <th>Apps</th>
-              <th>Student eligible</th>
-            </tr>
-          </thead>
-          <tbody>
-            {plansFixture.map((plan) => (
-              <tr key={plan.id}>
-                <td>{plan.name}</td>
-                <td>{plan.audience}</td>
-                <td>
-                  {plan.currency} {plan.price}/{plan.billingPeriod}
-                </td>
-                <td>{plan.includedApps.join(", ")}</td>
-                <td>{plan.studentEligible ? "Yes" : "No"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h2 className="section-title">Plan options</h2>
+        <div className="asset-grid">
+          {plansFixture.map((plan) => (
+            <article key={plan.id} className="asset-card">
+              <h3>{plan.name}</h3>
+              <p className="asset-meta">
+                {plan.currency} {plan.price}/{plan.billingPeriod}
+              </p>
+              <p className="small-note">Audience: {plan.audience}</p>
+              <p className="small-note">Apps: {plan.includedApps.join(", ")}</p>
+              <div className="badge-row">
+                <span className="status-badge">Credits: {plan.generativeCredits}</span>
+                <span className="status-badge">{plan.studentEligible ? "Student eligible" : "Standard eligibility"}</span>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section>
-        <h2 className="section-title">Last WebMCP tool output</h2>
-        <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.85rem" }}>{lastToolOutput}</pre>
+      <section className="preview-card">
+        <h2 className="section-title">Latest recommendation output</h2>
+        <div className="code-block">{lastToolOutput}</div>
       </section>
+
+      <details className="details-pane">
+        <summary>Developer details</summary>
+        <div style={{ marginTop: "10px", display: "grid", gap: "10px" }}>
+          <ToolRegistrationStatus
+            available={globalStatus.available}
+            registeredTools={globalStatus.registeredTools}
+          />
+          <ToolRegistrationStatus available={localStatus.available} registeredTools={localStatus.registeredTools} />
+        </div>
+      </details>
     </div>
   );
 }
-
