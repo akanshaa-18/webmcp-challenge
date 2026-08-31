@@ -211,12 +211,12 @@ export function CCHomeSurface({ route, surface }: CCHomeSurfaceProps) {
 
       <div className="cc-layout">
         <aside className="cc-sidebar">
-          <h2>Home</h2>
-          <button type="button" className="cc-nav-item cc-nav-item-active">Your work</button>
-          <button type="button" className="cc-nav-item">Recent</button>
-          <button type="button" className="cc-nav-item">Files</button>
-          <button type="button" className="cc-nav-item">Projects</button>
-          <button type="button" className="cc-nav-item">Libraries</button>
+          <h2>Creative Cloud</h2>
+          <button type="button" className="cc-nav-item cc-nav-item-active"><span>⌂</span>Your work</button>
+          <button type="button" className="cc-nav-item"><span>✦</span>AI Assistant</button>
+          <button type="button" className="cc-nav-item"><span>⊞</span>Apps</button>
+          <button type="button" className="cc-nav-item"><span>□</span>Files</button>
+          <button type="button" className="cc-nav-item"><span>♧</span>Benefits</button>
         </aside>
 
         <main className="cc-main">
@@ -357,6 +357,23 @@ export function CCHomeSurface({ route, surface }: CCHomeSurfaceProps) {
             </div>
           </details>
         </main>
+
+        <aside className="cc-recent-panel" aria-label="Recent files">
+          <div className="cc-recent-heading">
+            <h2>Recent files</h2>
+            <button type="button" aria-label="Add file">＋</button>
+          </div>
+          <div className="cc-recent-filter">▦&nbsp; All <span>⌄</span></div>
+          <div className="cc-recent-grid">
+            {missionStore.files.slice(0, 8).map((file) => (
+              <article key={file.id} className="cc-recent-file">
+                <Image src={getAssetPreview(file.id)} alt={`${file.name} thumbnail`} width={180} height={110} />
+                <strong>{file.name.replace(/\.(psd|png)$/i, "")}</strong>
+                <span>{file.type.toUpperCase()}</span>
+              </article>
+            ))}
+          </div>
+        </aside>
       </div>
     </div>
   );
