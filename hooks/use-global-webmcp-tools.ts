@@ -9,6 +9,13 @@ import { getMissionRuntime } from "@/lib/mission-runtime";
 import { useWebMcpTools } from "@/hooks/use-webmcp-tools";
 import { Surface, ToolManifest } from "@/lib/types";
 
+function getResumeDestination(projectId: string): string {
+  if (projectId === "kaftan-001") {
+    return "/project/kaftan";
+  }
+  return "/project/kaftan";
+}
+
 export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: string) {
   const router = useRouter();
   const [tools] = useState(() => [
@@ -188,9 +195,13 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
           return toolError("MISSING_MISSION", "Mission context is not initialized.");
         }
 
+        const destinationRoute = getResumeDestination(runtime.mission.projectId);
+        router.push(destinationRoute);
+
         return {
           status: "ok",
           data: {
+            destinationRoute,
             mission: runtime.mission,
             handoffHistory: runtime.mission.handoffHistory,
             handoffs: runtime.handoffs,

@@ -222,10 +222,16 @@ describe("integration journey checkpoint", () => {
       expect.arrayContaining(["change_background", "create_business_card"]),
     );
 
+    const missionBeforeResume = structuredClone(getMissionRuntime()?.mission);
+    pushSpy.mockClear();
+
     const resumed = await invokeTool(tools, "resume_workflow");
     expect(resumed.status).toBe("ok");
-    const resumedData = resumed.data as { handoffHistory: string[] } | undefined;
+    const resumedData = resumed.data as { handoffHistory: string[]; destinationRoute: string } | undefined;
+    expect(resumedData?.destinationRoute).toBe("/project/kaftan");
     expect(resumedData?.handoffHistory.length).toBeGreaterThanOrEqual(2);
+    expect(pushSpy).toHaveBeenLastCalledWith("/project/kaftan");
+    expect(getMissionRuntime()?.mission).toEqual(missionBeforeResume);
 
     await act(async () => {
       root.render(<Harness stage="project" />);
