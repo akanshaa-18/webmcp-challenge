@@ -2,7 +2,7 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MissionProvider } from "@/components/mission-provider";
 import { CCHomeSurface } from "@/components/surfaces/cc-home-surface";
 import { ExpressSurface } from "@/components/surfaces/express-surface";
@@ -72,6 +72,11 @@ async function invokeTool(tools: Map<string, WebMcpTool>, name: string, input?: 
 }
 
 describe("integration journey checkpoint", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    pushSpy.mockClear();
+  });
+
   it("runs Plans and Kaftan end-to-end with WebMCP tool transitions", async () => {
     const { tools } = getRegisteredTools();
     const container = document.createElement("div");
@@ -167,7 +172,7 @@ describe("integration journey checkpoint", () => {
     const fireflyHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "firefly.change_background",
       toSurface: "Firefly",
-      task: "Change background",
+      task: "Create a dark premium textile background while preserving the approved Kaftan logo.",
       assetIds: ["kaftan-logo-final"],
       expectedResult: "background-updated-logo",
     });
@@ -289,6 +294,241 @@ describe("integration journey checkpoint", () => {
       ]),
     );
     expect(runtimeEnd?.mission.handoffHistory.length).toBeGreaterThanOrEqual(2);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("rejects prepare_handoff when toSurface conflicts with capability owner", async () => {
+    const { tools } = getRegisteredTools();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Harness stage="project" />);
+    });
+    await flush();
+
+    const result = (await invokeTool(tools, "prepare_handoff", {
+      toolName: "firefly.change_background",
+      toSurface: "Express",
+      task: "Create a dark premium textile background while preserving the approved Kaftan logo.",
+      assetIds: ["kaftan-logo-final"],
+      expectedResult: "background-updated-logo",
+    })) as { status: string; code?: string };
+
+    expect(result.status).toBe("error");
+    expect(result.code).toBe("HANDOFF_SURFACE_MISMATCH");
+    expect(pushSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("clickable Continue to Firefly creates a valid Firefly handoff", async () => {
+    const { tools } = getRegisteredTools();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Harness stage="project" />);
+    });
+    await flush();
+
+    const continueButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Continue to Firefly",
+    );
+    expect(continueButton).toBeDefined();
+
+    await act(async () => {
+      continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const destination = pushSpy.mock.calls.at(-1)?.[0] as string | undefined;
+    expect(destination).toMatch(/^\/firefly\?handoff=/);
+    const handoffId = destination?.split("handoff=")[1];
+    expect(handoffId).toBeDefined();
+
+    const runtime = getMissionRuntime();
+    const handoff = runtime?.getHandoff(handoffId ?? "");
+    expect(handoff?.toolName).toBe("firefly.change_background");
+    expect(handoff?.toSurface).toBe("Firefly");
+    expect(tools.has("change_background")).toBe(false);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("clickable Continue to Express creates a valid Express handoff", async () => {
+    const { tools } = getRegisteredTools();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Harness stage="project" />);
+    });
+    await flush();
+
+    const fireflyHandoff = await invokeTool(tools, "prepare_handoff", {
+      toolName: "firefly.change_background",
+      toSurface: "Firefly",
+      task: "Create a dark premium textile background while preserving the approved Kaftan logo.",
+      assetIds: ["kaftan-logo-final"],
+      expectedResult: "background-updated-logo",
+    });
+    const fireflyHandoffId = (fireflyHandoff.data as { handoffId?: string } | undefined)?.handoffId;
+    await act(async () => {
+      root.render(<Harness stage="firefly" handoffId={fireflyHandoffId} />);
+    });
+    await flush();
+
+    const changeResult = await invokeTool(tools, "change_background", {
+      handoffId: fireflyHandoffId,
+      assetId: "kaftan-logo-final",
+    });
+    expect(changeResult.status).toBe("ok");
+
+    const continueButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Continue to Express",
+    );
+    expect(continueButton).toBeDefined();
+
+    await act(async () => {
+      continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const destination = pushSpy.mock.calls.at(-1)?.[0] as string | undefined;
+    expect(destination).toMatch(/^\/express\?handoff=/);
+    const handoffId = destination?.split("handoff=")[1];
+    const handoff = getMissionRuntime()?.getHandoff(handoffId ?? "");
+    expect(handoff?.toolName).toBe("express.create_business_card");
+    expect(handoff?.toSurface).toBe("Express");
+    expect(handoff?.assetIds).toContain("kaftan-logo-background-v1");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("blocks change_background without creative direction and allows explicit or handoff direction", async () => {
+    const { tools } = getRegisteredTools();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Harness stage="project" />);
+    });
+    await flush();
+
+    const genericHandoff = await invokeTool(tools, "prepare_handoff", {
+      toolName: "firefly.change_background",
+      toSurface: "Firefly",
+      task: "Change background",
+      assetIds: ["kaftan-logo-final"],
+      expectedResult: "background-updated-logo",
+    });
+    const genericHandoffId = (genericHandoff.data as { handoffId?: string } | undefined)?.handoffId;
+
+    await act(async () => {
+      root.render(<Harness stage="firefly" handoffId={genericHandoffId} />);
+    });
+    await flush();
+
+    const missingDirection = (await invokeTool(tools, "change_background", {
+      handoffId: genericHandoffId,
+      assetId: "kaftan-logo-final",
+    })) as { status: string; data?: { code?: string } };
+    expect(missingDirection.status).toBe("decision_required");
+    expect(missingDirection.data?.code).toBe("MISSING_CREATIVE_DIRECTION");
+
+    const explicitDirection = await invokeTool(tools, "change_background", {
+      handoffId: genericHandoffId,
+      assetId: "kaftan-logo-final",
+      creativeDirection: "Create a dark premium textile background while preserving the approved Kaftan logo.",
+    });
+    expect(explicitDirection.status).toBe("ok");
+
+    await act(async () => {
+      getMissionRuntime()?.resetDemo();
+    });
+    await flush();
+
+    await act(async () => {
+      root.render(<Harness stage="project" />);
+    });
+    await flush();
+
+    const directionalHandoff = await invokeTool(tools, "prepare_handoff", {
+      toolName: "firefly.change_background",
+      toSurface: "Firefly",
+      task: "Create a dark premium textile background while preserving the approved Kaftan logo.",
+      assetIds: ["kaftan-logo-final"],
+      expectedResult: "background-updated-logo",
+    });
+    const directionalHandoffId = (directionalHandoff.data as { handoffId?: string } | undefined)?.handoffId;
+    await act(async () => {
+      root.render(<Harness stage="firefly" handoffId={directionalHandoffId} />);
+    });
+    await flush();
+
+    const handoffDirection = await invokeTool(tools, "change_background", {
+      handoffId: directionalHandoffId,
+      assetId: "kaftan-logo-final",
+    });
+    expect(handoffDirection.status).toBe("ok");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("rejects assets outside active handoff for Firefly and Express", async () => {
+    const { tools } = getRegisteredTools();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Harness stage="project" />);
+    });
+    await flush();
+
+    const fireflyHandoff = await invokeTool(tools, "prepare_handoff", {
+      toolName: "firefly.change_background",
+      toSurface: "Firefly",
+      task: "Create a dark premium textile background while preserving the approved Kaftan logo.",
+      assetIds: ["kaftan-logo-final"],
+      expectedResult: "background-updated-logo",
+    });
+    const fireflyHandoffId = (fireflyHandoff.data as { handoffId?: string } | undefined)?.handoffId;
+    await act(async () => {
+      root.render(<Harness stage="firefly" handoffId={fireflyHandoffId} />);
+    });
+    await flush();
+
+    const invalidFireflyAsset = (await invokeTool(tools, "change_background", {
+      handoffId: fireflyHandoffId,
+      assetId: "kaftan-product-reference",
+    })) as { status: string; code?: string };
+    expect(invalidFireflyAsset.status).toBe("error");
+    expect(invalidFireflyAsset.code).toBe("INVALID_HANDOFF_ASSET");
+
+    const expressHandoff = await invokeTool(tools, "prepare_handoff", {
+      toolName: "express.create_business_card",
+      toSurface: "Express",
+      task: "Create a business card from this asset.",
+      assetIds: ["kaftan-logo-final"],
+      expectedResult: "business-card-output",
+    });
+    const expressHandoffId = (expressHandoff.data as { handoffId?: string } | undefined)?.handoffId;
+    await act(async () => {
+      root.render(<Harness stage="express" handoffId={expressHandoffId} />);
+    });
+    await flush();
+
+    const invalidExpressAsset = (await invokeTool(tools, "create_business_card", {
+      handoffId: expressHandoffId,
+      sourceAssetId: "kaftan-product-reference",
+    })) as { status: string; code?: string };
+    expect(invalidExpressAsset.status).toBe("error");
+    expect(invalidExpressAsset.code).toBe("INVALID_HANDOFF_ASSET");
 
     await act(async () => {
       root.unmount();

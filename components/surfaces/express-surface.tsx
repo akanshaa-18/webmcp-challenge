@@ -61,6 +61,12 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
           }
 
           const sourceAssetId = input?.sourceAssetId ?? activeHandoff.assetIds[0];
+          if (!activeHandoff.assetIds.includes(sourceAssetId)) {
+            return toolError(
+              "INVALID_HANDOFF_ASSET",
+              `Asset ${sourceAssetId} is not part of handoff ${input.handoffId ?? handoffFromUrl}.`,
+            );
+          }
           const sourceAsset = runtime.files.find((file) => file.id === sourceAssetId);
           if (!sourceAsset) {
             return toolError("INVALID_ASSET", `Unknown source asset: ${sourceAssetId}`);

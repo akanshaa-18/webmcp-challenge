@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMission } from "@/components/mission-provider";
 import { ToolRegistrationStatus } from "@/components/tool-registration-status";
+import { describeCapability } from "@/lib/capability-registry";
 import { resolveDuplicateDeletion } from "@/lib/delete-duplicates";
 import { detectDuplicates } from "@/lib/duplicate-detection";
 import { searchCreativeFiles } from "@/lib/file-search";
@@ -40,6 +41,7 @@ function getAssetPreview(fileId: string) {
 }
 
 export function CCHomeSurface({ route, surface }: CCHomeSurfaceProps) {
+  const router = useRouter();
   const missionStore = useMission();
   const globalStatus = useGlobalWebMcpTools(surface, route);
   const duplicateOverview = detectDuplicates(missionStore.files);
@@ -198,6 +200,28 @@ export function CCHomeSurface({ route, surface }: CCHomeSurfaceProps) {
   const localStatus = useWebMcpTools(localTools);
   const latestDuplicate = duplicateOverview.exactDuplicates[0];
 
+  const continueToFirefly = () => {
+    const runtime = getMissionRuntime();
+    if (!runtime) {
+      return;
+    }
+    const capability = describeCapability("firefly.change_background");
+    if (!capability) {
+      return;
+    }
+    const activeAssetId = missionStore.currentAsset?.id ?? runtime.mission.currentAssetId;
+    const handoff = runtime.createAndStoreHandoff({
+      fromSurface: surface,
+      toSurface: capability.ownerSurface,
+      toolName: capability.toolName,
+      projectId: runtime.mission.projectId,
+      assetIds: [activeAssetId],
+      task: "Create a dark premium textile background while preserving the approved Kaftan logo.",
+      expectedResult: "background-updated-logo",
+    });
+    router.push(`${capability.destinationRoute}?handoff=${handoff.handoffId}`);
+  };
+
   return (
     <div className="cc-surface">
       <header className="cc-topbar">
@@ -324,9 +348,9 @@ export function CCHomeSurface({ route, surface }: CCHomeSurfaceProps) {
           <div className="badge-row">
             <span className="status-badge">Opening {currentAsset?.name ?? "Kaftan-logo-final.psd"} in Firefly</span>
             <span className="status-badge">Context carried from Adobe Home</span>
-            <Link className="button-link" href="/firefly">
+            <button type="button" className="button-link" onClick={continueToFirefly}>
               Continue to Firefly
-            </Link>
+            </button>
           </div>
           <details className="details-pane">
             <summary>Developer details</summary>

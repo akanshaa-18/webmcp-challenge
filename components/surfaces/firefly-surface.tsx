@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useMission } from "@/components/mission-provider";
 import { ToolRegistrationStatus } from "@/components/tool-registration-status";
+import { describeCapability } from "@/lib/capability-registry";
 import { toolError } from "@/lib/errors";
 import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
 import { useWebMcpTools } from "@/hooks/use-webmcp-tools";
@@ -15,6 +16,7 @@ interface FireflySurfaceProps {
 }
 
 export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
+  const router = useRouter();
   const missionStore = useMission();
   const handoffId = handoffIdFromRoute;
   const handoff = handoffId ? missionStore.getHandoff(handoffId) : null;
@@ -39,9 +41,14 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
               description:
                 "Optional. If omitted, the tool uses the first asset ID from the active handoff context.",
             },
+            creativeDirection: {
+              type: "string",
+              description:
+                "Optional. If omitted, the tool uses creative direction from the active handoff context.",
+            },
           },
         },
-        execute: (input: { handoffId?: string; assetId?: string }) => {
+        execute: (input: { handoffId?: string; assetId?: string; creativeDirection?: string }) => {
           const runtime = getMissionRuntime();
           if (!runtime) {
             return toolError("MISSING_MISSION", "Mission context is not initialized.");
@@ -65,9 +72,27 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
           }
 
           const sourceAssetId = input?.assetId ?? activeHandoff.assetIds[0];
+          if (!activeHandoff.assetIds.includes(sourceAssetId)) {
+            return toolError(
+              "INVALID_HANDOFF_ASSET",
+              `Asset ${sourceAssetId} is not part of handoff ${resolvedHandoffId}.`,
+            );
+          }
           const sourceAsset = runtime.files.find((file) => file.id === sourceAssetId);
           if (!sourceAsset) {
             return toolError("INVALID_ASSET", `Unknown source asset: ${sourceAssetId}`);
+          }
+
+          const resolvedCreativeDirection = input?.creativeDirection?.trim() ?? activeHandoff.task?.trim() ?? "";
+          if (!resolvedCreativeDirection || resolvedCreativeDirection.toLowerCase() === "change background") {
+            return {
+              status: "decision_required" as const,
+              data: {
+                code: "MISSING_CREATIVE_DIRECTION",
+                message:
+                  "A human-provided creative direction is required to change background under current mission constraints.",
+              },
+            };
           }
 
           const outputFile = {
@@ -98,6 +123,28 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
   const localStatus = useWebMcpTools(localTools);
   const hasGenerated = missionStore.files.some((file) => file.id === "kaftan-logo-background-v1");
   const activeAssetName = missionStore.currentAsset?.name ?? "Kaftan-logo-final.psd";
+
+  const continueToExpress = () => {
+    const runtime = getMissionRuntime();
+    if (!runtime) {
+      return;
+    }
+    const capability = describeCapability("express.create_business_card");
+    if (!capability) {
+      return;
+    }
+    const activeAssetId = missionStore.currentAsset?.id ?? runtime.mission.currentAssetId;
+    const handoff = runtime.createAndStoreHandoff({
+      fromSurface: "Firefly",
+      toSurface: capability.ownerSurface,
+      toolName: capability.toolName,
+      projectId: runtime.mission.projectId,
+      assetIds: [activeAssetId],
+      task: "Create a business card from this asset.",
+      expectedResult: "business-card-output",
+    });
+    router.push(`${capability.destinationRoute}?handoff=${handoff.handoffId}`);
+  };
 
   return (
     <div className="firefly-surface">
@@ -166,9 +213,9 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
           </p>
           <div className="badge-row" style={{ marginTop: "12px" }}>
             <span className="status-badge">{hasGenerated ? "Background complete" : "Pending execution"}</span>
-            <Link className="button-link" href="/express">
+            <button type="button" className="button-link" onClick={continueToExpress}>
               Continue to Express
-            </Link>
+            </button>
           </div>
           <p className="small-note" style={{ marginTop: "8px" }}>
             Using Firefly result

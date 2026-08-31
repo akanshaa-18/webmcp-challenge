@@ -14,21 +14,38 @@ function RegisterTools({ tools }: { tools: WebMcpTool[] }) {
 }
 
 describe("route-local WebMCP lifecycle", () => {
-  it("registers and unregisters change_background for Firefly lifecycle", async () => {
-    const registerTool = vi.fn(async () => undefined);
-    const unregisterTool = vi.fn();
+  it("registers tools with AbortSignal and aborts on unmount", async () => {
+    const registerTool = vi.fn(async (...args: unknown[]) => {
+      void args;
+      return undefined;
+    });
+    const capturedSignals: AbortSignal[] = [];
 
     Object.defineProperty(document, "modelContext", {
-      value: { registerTool, unregisterTool },
+      value: {
+        registerTool: (tool: WebMcpTool, options?: { signal?: AbortSignal }) => {
+          if (options?.signal) {
+            capturedSignals.push(options.signal);
+          }
+          return registerTool(tool, options);
+        },
+      },
       configurable: true,
     });
 
     const container = document.createElement("div");
     const root = createRoot(container);
-    const fireflyTools: WebMcpTool[] = [
+    const tools: WebMcpTool[] = [
       {
         name: "change_background",
-        description: "Firefly local tool",
+        description: "Tool one",
+        annotations: { readOnlyHint: false },
+        inputSchema: { type: "object", properties: { handoffId: { type: "string" } } },
+        execute: () => ({ status: "ok" }),
+      },
+      {
+        name: "create_business_card",
+        description: "Tool two",
         annotations: { readOnlyHint: false },
         inputSchema: { type: "object", properties: { handoffId: { type: "string" } } },
         execute: () => ({ status: "ok" }),
@@ -36,7 +53,7 @@ describe("route-local WebMCP lifecycle", () => {
     ];
 
     await act(async () => {
-      root.render(<RegisterTools tools={fireflyTools} />);
+      root.render(<RegisterTools tools={tools} />);
     });
     await act(async () => {
       await Promise.resolve();
@@ -46,56 +63,25 @@ describe("route-local WebMCP lifecycle", () => {
       expect.objectContaining({ name: "change_background" }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
-
-    await act(async () => {
-      root.unmount();
-    });
-
-    expect(unregisterTool).toHaveBeenCalledWith("change_background");
-  });
-
-  it("registers and unregisters create_business_card for Express lifecycle", async () => {
-    const registerTool = vi.fn(async () => undefined);
-    const unregisterTool = vi.fn();
-
-    Object.defineProperty(document, "modelContext", {
-      value: { registerTool, unregisterTool },
-      configurable: true,
-    });
-
-    const container = document.createElement("div");
-    const root = createRoot(container);
-    const expressTools: WebMcpTool[] = [
-      {
-        name: "create_business_card",
-        description: "Express local tool",
-        annotations: { readOnlyHint: false },
-        inputSchema: { type: "object", properties: { handoffId: { type: "string" } } },
-        execute: () => ({ status: "ok" }),
-      },
-    ];
-
-    await act(async () => {
-      root.render(<RegisterTools tools={expressTools} />);
-    });
-    await act(async () => {
-      await Promise.resolve();
-    });
-
     expect(registerTool).toHaveBeenCalledWith(
       expect.objectContaining({ name: "create_business_card" }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+    expect(capturedSignals.length).toBe(2);
+    expect(capturedSignals.every((signal) => !signal.aborted)).toBe(true);
 
     await act(async () => {
       root.unmount();
     });
 
-    expect(unregisterTool).toHaveBeenCalledWith("create_business_card");
+    expect(capturedSignals.every((signal) => signal.aborted)).toBe(true);
   });
 
-  it("registers and unregisters plans local tools for Plans lifecycle", async () => {
-    const registerTool = vi.fn(async () => undefined);
+  it("optionally calls unregisterTool when supported by host", async () => {
+    const registerTool = vi.fn(async (...args: unknown[]) => {
+      void args;
+      return undefined;
+    });
     const unregisterTool = vi.fn();
 
     Object.defineProperty(document, "modelContext", {
@@ -140,9 +126,6 @@ describe("route-local WebMCP lifecycle", () => {
       root.unmount();
     });
 
-    expect(unregisterTool).toHaveBeenCalledWith("get_regional_plans");
-    expect(unregisterTool).toHaveBeenCalledWith("get_plan_capabilities");
-    expect(unregisterTool).toHaveBeenCalledWith("get_plan_price");
-    expect(unregisterTool).toHaveBeenCalledWith("compare_plan_options");
+    expect(unregisterTool).toHaveBeenCalledTimes(4);
   });
 });

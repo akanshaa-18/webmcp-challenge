@@ -22,6 +22,12 @@ This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and **Adob
 
 ## Local setup
 
+Use Node **20.19.0+** (see `.nvmrc`):
+
+```bash
+nvm use
+```
+
 ```bash
 npm install
 npm run dev

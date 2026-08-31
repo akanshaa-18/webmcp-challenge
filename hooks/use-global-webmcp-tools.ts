@@ -160,10 +160,16 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         if (!capability) {
           return toolError("UNKNOWN_CAPABILITY", `Cannot hand off unknown tool: ${input.toolName}`);
         }
+        if (input.toSurface !== capability.ownerSurface) {
+          return toolError(
+            "HANDOFF_SURFACE_MISMATCH",
+            `Tool ${input.toolName} belongs to ${capability.ownerSurface}, not ${input.toSurface}.`,
+          );
+        }
 
         const handoff = runtime.createAndStoreHandoff({
           fromSurface: currentSurface,
-          toSurface: input.toSurface,
+          toSurface: capability.ownerSurface,
           toolName: input.toolName,
           projectId: runtime.mission.projectId,
           assetIds: input.assetIds,
