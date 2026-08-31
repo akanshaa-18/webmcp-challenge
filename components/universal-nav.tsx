@@ -16,48 +16,34 @@ export function UniversalNav() {
   const pathname = usePathname();
   const { mission, resetDemo } = useMission();
   const stage = getMissionStage(mission.currentStep);
-  const progress = ["1 Discover", "2 Create", "3 Adapt", "4 Clean up", "5 Complete"];
+  const progressLabel =
+    stage === 5 ? "Mission complete" : stage === 4 ? "Cleanup in progress" : stage === 3 ? "Adaptation complete" : stage === 2 ? "Background complete" : "Discovery in progress";
 
   return (
-    <header className="mission-nav">
-      <div className="mission-nav-inner">
-        <div className="mission-nav-top">
-          <strong>Adobe Creative Mission Control</strong>
-          <button type="button" onClick={resetDemo} className="secondary-button">
-            Reset Demo
-          </button>
-        </div>
-        <div>
-          <span className="chip">Project: Kaftan</span>
-          <span className="chip">Mission: Finish client project</span>
-          <span className="chip">Current step: {mission.currentStep}</span>
-        </div>
-        <div className="progress-track">
-          {progress.map((item, index) => (
-            <div key={item} className={`progress-step ${stage === index + 1 ? "progress-step-active" : ""}`}>
-              {item}
-            </div>
-          ))}
-        </div>
-        <nav className="mission-nav-links">
-          {[
-            ["/plans", "Plans"],
-            ["/cc-home", "CC Home"],
-            ["/project/kaftan", "Project"],
-            ["/firefly", "Firefly"],
-            ["/express", "Express"],
-            ["/capabilities", "Capabilities"],
-          ].map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              className={`mission-link ${pathname === href ? "mission-link-active" : ""}`}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+    <header className="mission-chip-shell">
+      <div className="mission-chip">
+        <p className="mission-chip-title">✦ Mission Control</p>
+        <p className="mission-chip-meta">
+          Kaftan · {stage}/5 · {progressLabel}
+        </p>
       </div>
+      <nav className="mission-mini-links">
+        {[
+          ["/plans", "Plans"],
+          ["/cc-home", "Home"],
+          ["/project/kaftan", "Project"],
+          ["/firefly", "Firefly"],
+          ["/express", "Express"],
+          ["/capabilities", "Capabilities"],
+        ].map(([href, label]) => (
+          <Link key={href} href={href} className={`mission-mini-link ${pathname === href ? "mission-mini-link-active" : ""}`}>
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <button type="button" onClick={resetDemo} className="secondary-button">
+        Reset Demo
+      </button>
     </header>
   );
 }

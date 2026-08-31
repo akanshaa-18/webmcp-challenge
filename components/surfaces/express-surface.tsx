@@ -94,12 +94,65 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
   const hasOutput = missionStore.files.some((file) => file.id === "kaftan-business-card-01");
 
   return (
-    <div className="surface">
-      <header className="hero">
-        <p className="small-note">Adobe Express</p>
-        <h1 className="hero-title">Business card adaptation</h1>
-        <p className="hero-subtitle">Creative context preserved from prior mission steps.</p>
+    <div className="express-surface">
+      <header className="express-topbar">
+        <div className="express-brand">Adobe Express</div>
+        <div className="express-header-actions">
+          <span>Templates</span>
+          <span>Brand</span>
+          <span>Share</span>
+        </div>
       </header>
+
+      <div className="express-layout">
+        <aside className="express-left-rail">
+          <button type="button" className="express-tool express-tool-active">Design</button>
+          <button type="button" className="express-tool">Media</button>
+          <button type="button" className="express-tool">Text</button>
+          <button type="button" className="express-tool">Brand kits</button>
+        </aside>
+
+        <main className="express-editor-canvas">
+          <p className="small-note">Business card adaptation · Context preserved from prior mission steps</p>
+          <div className="express-artboard-frame">
+            {hasOutput ? (
+              <Image
+                src="/demo-assets/kaftan-business-card-01.svg"
+                alt="Kaftan business card output"
+                width={720}
+                height={420}
+                style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
+              />
+            ) : (
+              <div className="preview-placeholder">
+                <div>
+                  <strong>Ready to create</strong>
+                  <p className="small-note">Source is linked and waiting for execution.</p>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="badge-row">
+            <span className="status-badge">Source: {handoff ? "Firefly result loaded" : "Awaiting handoff"}</span>
+            <span className="status-badge">{hasOutput ? "Output: kaftan-business-card-01" : "Output pending"}</span>
+          </div>
+        </main>
+
+        <aside className="express-right-panel">
+          <h2 className="section-title">Selected design</h2>
+          <p className="small-note">Business card</p>
+          <div className="timeline-list" style={{ marginTop: "10px" }}>
+            <div className="timeline-item">Meera Sharma</div>
+            <div className="timeline-item">Freelance Designer</div>
+            <div className="timeline-item">meera@example.com</div>
+          </div>
+          <div className="badge-row" style={{ marginTop: "12px" }}>
+            <Link className="button-link" href="/project/kaftan">
+              Return to Project
+            </Link>
+          </div>
+        </aside>
+      </div>
 
       <section className="split">
         <article className="preview-card">
@@ -111,12 +164,9 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
             height={420}
             style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
           />
-          <p className="small-note" style={{ marginTop: "8px" }}>
-            {handoff ? handoff.assetIds.join(", ") : "Awaiting handoff"}
-          </p>
         </article>
         <article className="preview-card">
-          <h2 className="section-title">Output</h2>
+          <h2 className="section-title">Generated output</h2>
           {hasOutput ? (
             <Image
               src="/demo-assets/kaftan-business-card-01.svg"
@@ -128,28 +178,13 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
           ) : (
             <div className="preview-placeholder">
               <div>
-                <strong>Ready to create</strong>
-                <p className="small-note">No generated card yet.</p>
+                <strong>No output yet</strong>
+                <p className="small-note">Run create_business_card to generate output.</p>
               </div>
             </div>
           )}
         </article>
       </section>
-
-      <section className="preview-card">
-        <h2 className="section-title">Business card preview</h2>
-        <div style={{ border: "1px solid #d0d9ee", borderRadius: "12px", padding: "14px", background: "#ffffff" }}>
-          <p style={{ fontWeight: 700, fontSize: "1.05rem" }}>Meera Sharma</p>
-          <p className="small-note">Freelance Designer</p>
-          <p style={{ marginTop: "8px" }}>meera@example.com</p>
-        </div>
-      </section>
-
-      <div className="badge-row">
-        <Link className="button-link" href="/project/kaftan">
-          Return to Project
-        </Link>
-      </div>
 
       <details className="details-pane">
         <summary>View handoff details</summary>

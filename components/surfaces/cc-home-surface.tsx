@@ -196,167 +196,168 @@ export function CCHomeSurface({ route, surface }: CCHomeSurfaceProps) {
     ]);
 
   const localStatus = useWebMcpTools(localTools);
+  const latestDuplicate = duplicateOverview.exactDuplicates[0];
 
   return (
-    <div className="surface">
-      <header className="hero">
-        <p className="small-note">{surface === "Project" ? "Creative workspace" : "Creative Cloud Home"}</p>
-        <h1 className="hero-title">Kaftan</h1>
-        <p className="hero-subtitle">Client brand project</p>
-        <div className="badge-row">
-          <span className={`status-badge ${isMissionComplete ? "status-badge-success" : ""}`}>
-            Status: {isMissionComplete ? "Mission complete" : "In progress"}
-          </span>
-          <span className="status-badge">Current asset: {currentAsset?.name ?? "None"}</span>
-          <span className="status-badge">
-            {userFixture.name} · Student · {userFixture.city}, {userFixture.region}
-          </span>
+    <div className="cc-surface">
+      <header className="cc-topbar">
+        <div className="cc-brand">
+          <span className="cc-brand-mark">Adobe</span>
+          <span className="cc-brand-home">Home</span>
         </div>
+        <div className="cc-search">Search files, projects, and tools</div>
+        <div className="cc-user">{userFixture.name}</div>
       </header>
 
-      {isMissionComplete ? (
-        <section className="preview-card">
-          <h2 className="section-title">Mission complete</h2>
-          <p>Kaftan launch assets are ready.</p>
-          <div className="timeline-list" style={{ marginTop: "8px" }}>
-            <div className="timeline-item">✓ Background variation created</div>
-            <div className="timeline-item">✓ Business card created</div>
-            <div className="timeline-item">✓ Exact duplicate removed</div>
-            <div className="timeline-item">✓ Approved original preserved</div>
-            <div className="timeline-item">✓ Distinct versions preserved</div>
-            <div className="timeline-item">✓ No purchase made</div>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="split">
-        <aside className="preview-card">
-          <h2 className="section-title">Creative Cloud</h2>
-          <div className="timeline-list" style={{ marginTop: "8px" }}>
-            <div className="timeline-item">Home</div>
-            <div className="timeline-item">Files</div>
-            <div className="timeline-item">Projects</div>
-            <div className="timeline-item">Libraries</div>
-          </div>
+      <div className="cc-layout">
+        <aside className="cc-sidebar">
+          <h2>Home</h2>
+          <button type="button" className="cc-nav-item cc-nav-item-active">Your work</button>
+          <button type="button" className="cc-nav-item">Recent</button>
+          <button type="button" className="cc-nav-item">Files</button>
+          <button type="button" className="cc-nav-item">Projects</button>
+          <button type="button" className="cc-nav-item">Libraries</button>
         </aside>
-        <article>
-        <h2 className="section-title">Project assets</h2>
-        <div className="asset-grid">
-          {missionStore.files.map((file) => {
-            const isGenerated = file.id.includes("background") || file.id.includes("business-card");
-            const isVersion = file.name.toLowerCase().includes("-v");
-            const isDuplicateCandidate = duplicateOverview.exactDuplicates.some((group) =>
-              group.safeDeletionCandidateIds.includes(file.id),
-            );
-            return (
-              <article key={file.id} className="asset-card">
-                <Image
-                  src={getAssetPreview(file.id)}
-                  alt={`${file.name} preview`}
-                  width={720}
-                  height={420}
-                  style={{ width: "100%", height: "auto", borderRadius: "8px", border: "1px solid #e5e7eb" }}
-                />
-                <h3>{file.name}</h3>
-                <p className="asset-meta">{file.type.toUpperCase()} · {(file.size / 1_000_000).toFixed(1)} MB</p>
-                <div className="badge-row">
-                  {file.approved ? <span className="status-badge status-badge-success">Approved</span> : null}
-                  {isVersion ? <span className="status-badge">Version</span> : null}
-                  {isGenerated ? <span className="status-badge">Generated</span> : null}
-                  {isDuplicateCandidate ? <span className="status-badge">Duplicate candidate</span> : null}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-        </article>
-      </section>
 
-      <section className="split">
-        <article className="preview-card">
-          <h2 className="section-title">Duplicate cleanup</h2>
-          {duplicateOverview.exactDuplicates.length ? (
-            <>
-              <p>
-                Exact duplicate detected:{" "}
-                <strong>{duplicateOverview.exactDuplicates[0].safeDeletionCandidateIds.join(", ") || "None"}</strong>
-              </p>
-              <p>
-                Matches approved original: <strong>{duplicateOverview.exactDuplicates[0].protectedFileIds.join(", ")}</strong>
-              </p>
-            </>
-          ) : (
-            <p>No exact duplicates remaining in the current project set.</p>
-          )}
-          <p className="small-note">Distinct version preserved: kaftan-logo-v2</p>
-        </article>
-        <article className="preview-card">
-          <h2 className="section-title">Approval required</h2>
-          <p>
-            Creative Mission Control found an exact duplicate. The approved original will remain untouched.
-          </p>
-          {Object.values(missionStore.deletionApprovals).length === 0 ? (
-            <p className="small-note">No pending approvals yet.</p>
-          ) : (
-            <div className="timeline-list">
-              {Object.values(missionStore.deletionApprovals).map((approval) => (
-                <div key={approval.confirmationId} className="timeline-item">
-                  <p>
-                    <strong>{approval.fileId}</strong> ·{" "}
-                    {approval.approvedByHuman ? "Approved" : "Pending human approval"}
-                  </p>
-                  <button
-                    className="button-link"
-                    type="button"
-                    onClick={() => missionStore.approveDeletionApproval(approval.confirmationId)}
-                    disabled={approval.approvedByHuman}
-                    style={{ marginTop: "8px", opacity: approval.approvedByHuman ? 0.6 : 1 }}
-                  >
-                    Approve deletion
-                  </button>
-                </div>
-              ))}
+        <main className="cc-main">
+          <section className="cc-project-header">
+            <p className="small-note">{surface === "Project" ? "Projects / Kaftan" : "Creative Cloud Home"}</p>
+            <h1>Kaftan</h1>
+            <div className="badge-row">
+              <span className={`status-badge ${isMissionComplete ? "status-badge-success" : ""}`}>
+                {isMissionComplete ? "Mission complete" : "In progress"}
+              </span>
+              <span className="status-badge">Current asset: {currentAsset?.name ?? "None"}</span>
             </div>
-          )}
-        </article>
-      </section>
+          </section>
 
-      <div className="badge-row">
-        <span className="status-badge">Opening in Firefly: {currentAsset?.name ?? "Kaftan-logo-final.psd"}</span>
-        <span className="status-badge">Creative context carried</span>
-        <Link className="button-link" href="/firefly">
-          Continue to Firefly
-        </Link>
+          {isMissionComplete ? (
+            <section className="preview-card">
+              <h2 className="section-title">Kaftan project ready</h2>
+              <div className="timeline-list" style={{ marginTop: "8px" }}>
+                <div className="timeline-item">✓ Background variation created</div>
+                <div className="timeline-item">✓ Business card created</div>
+                <div className="timeline-item">✓ Exact duplicate removed</div>
+                <div className="timeline-item">✓ Approved original preserved</div>
+                <div className="timeline-item">✓ Distinct versions preserved</div>
+                <div className="timeline-item">✓ No purchase made</div>
+              </div>
+            </section>
+          ) : null}
+
+          <section>
+            <h2 className="section-title">Project assets</h2>
+            <div className="asset-grid" style={{ marginTop: "12px" }}>
+              {missionStore.files.map((file) => {
+                const isGenerated = file.id.includes("background") || file.id.includes("business-card");
+                const isVersion = file.name.toLowerCase().includes("-v");
+                const isDuplicateCandidate = duplicateOverview.exactDuplicates.some((group) =>
+                  group.safeDeletionCandidateIds.includes(file.id),
+                );
+                return (
+                  <article key={file.id} className="asset-card">
+                    <Image
+                      src={getAssetPreview(file.id)}
+                      alt={`${file.name} preview`}
+                      width={720}
+                      height={420}
+                      style={{ width: "100%", height: "auto", borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                    />
+                    <h3>{file.name}</h3>
+                    <p className="asset-meta">{file.type.toUpperCase()} · {(file.size / 1_000_000).toFixed(1)} MB</p>
+                    <div className="badge-row">
+                      {file.approved ? <span className="status-badge status-badge-success">Approved</span> : null}
+                      {isVersion ? <span className="status-badge">Version</span> : null}
+                      {isGenerated ? <span className="status-badge">Generated</span> : null}
+                      {isDuplicateCandidate ? <span className="status-badge">Duplicate candidate</span> : null}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="split">
+            <article className="preview-card">
+              <h2 className="section-title">Duplicate cleanup</h2>
+              {latestDuplicate ? (
+                <>
+                  <p>Exact duplicate detected: <strong>Kaftan-logo-copy.psd</strong></p>
+                  <p>Matches: <strong>Kaftan-logo-final.psd</strong></p>
+                  <p className="small-note">Approved original protected · Distinct version preserved (Kaftan-logo-v2.psd)</p>
+                </>
+              ) : (
+                <p>No exact duplicates remaining in this project.</p>
+              )}
+            </article>
+
+            <article className="preview-card">
+              <h2 className="section-title">Approval required</h2>
+              <p>
+                An exact duplicate was identified. The approved original and distinct versions will remain untouched.
+              </p>
+              {Object.values(missionStore.deletionApprovals).length === 0 ? (
+                <p className="small-note">No pending approvals yet.</p>
+              ) : (
+                <div className="timeline-list">
+                  {Object.values(missionStore.deletionApprovals).map((approval) => (
+                    <div key={approval.confirmationId} className="timeline-item">
+                      <p>
+                        <strong>{approval.fileId}</strong> · {approval.approvedByHuman ? "Approved" : "Pending human approval"}
+                      </p>
+                      <button
+                        className="button-link"
+                        type="button"
+                        onClick={() => missionStore.approveDeletionApproval(approval.confirmationId)}
+                        disabled={approval.approvedByHuman}
+                        style={{ marginTop: "8px", opacity: approval.approvedByHuman ? 0.6 : 1 }}
+                      >
+                        Approve deletion
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          </section>
+
+          <div className="badge-row">
+            <span className="status-badge">Opening {currentAsset?.name ?? "Kaftan-logo-final.psd"} in Firefly</span>
+            <span className="status-badge">Context carried from Adobe Home</span>
+            <Link className="button-link" href="/firefly">
+              Continue to Firefly
+            </Link>
+          </div>
+          <details className="details-pane">
+            <summary>Developer details</summary>
+            <div style={{ marginTop: "10px", display: "grid", gap: "10px" }}>
+              <ToolRegistrationStatus
+                available={globalStatus.available}
+                registeredTools={globalStatus.registeredTools}
+              />
+              <ToolRegistrationStatus available={localStatus.available} registeredTools={localStatus.registeredTools} />
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Hash</th>
+                    <th>Modified</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {missionStore.files.map((file) => (
+                    <tr key={file.id}>
+                      <td>{file.name}</td>
+                      <td>{file.hash}</td>
+                      <td>{new Date(file.modifiedAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </main>
       </div>
-
-      <details className="details-pane">
-        <summary>Developer details</summary>
-        <div style={{ marginTop: "10px", display: "grid", gap: "10px" }}>
-          <ToolRegistrationStatus
-            available={globalStatus.available}
-            registeredTools={globalStatus.registeredTools}
-          />
-          <ToolRegistrationStatus available={localStatus.available} registeredTools={localStatus.registeredTools} />
-          <table className="table">
-            <thead>
-              <tr>
-                <th>File</th>
-                <th>Hash</th>
-                <th>Modified</th>
-              </tr>
-            </thead>
-            <tbody>
-              {missionStore.files.map((file) => (
-                <tr key={file.id}>
-                  <td>{file.name}</td>
-                  <td>{file.hash}</td>
-                  <td>{new Date(file.modifiedAt).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
     </div>
   );
 }

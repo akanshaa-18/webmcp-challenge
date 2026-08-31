@@ -126,41 +126,61 @@ export function PlansSurface() {
   const localStatus = useWebMcpTools(localTools);
 
   return (
-    <div className="surface">
-      <header className="hero">
-        <p className="small-note">Adobe Plans</p>
-        <h1 className="hero-title">Find the right Creative Cloud plan</h1>
-        <p className="hero-subtitle">Demo plan data for WebMCP prototype</p>
-        <div className="badge-row">
-          <span className="status-badge">
-            <strong>Meera</strong> · Student · Bangalore, India
-          </span>
-          <span className="status-badge">Region: IN</span>
+    <div className="plans-surface">
+      <header className="plans-topbar">
+        <div className="plans-brand">
+          <span className="plans-adobe-mark">Adobe</span>
+          <span className="plans-brand-divider">|</span>
+          <span>Creative Cloud</span>
         </div>
+        <nav className="plans-top-links">
+          <span>Creativity & Design</span>
+          <span>PDF & E-signatures</span>
+          <span>Marketing & Commerce</span>
+        </nav>
       </header>
 
-      <section>
-        <h2 className="section-title">Plan options</h2>
-        <div className="asset-grid">
-          {plansFixture.map((plan) => (
-            <article key={plan.id} className="asset-card">
-              <h3>{plan.name}</h3>
-              <p className="asset-meta">
-                {plan.currency} {plan.price}/{plan.billingPeriod}
-              </p>
-              <p className="small-note">Audience: {plan.audience}</p>
-              <p className="small-note">Apps: {plan.includedApps.join(", ")}</p>
-              <div className="badge-row">
-                <span className="status-badge">Credits: {plan.generativeCredits}</span>
-                <span className="status-badge">{plan.studentEligible ? "Student eligible" : "Standard eligibility"}</span>
-              </div>
-            </article>
-          ))}
+      <section className="plans-hero">
+        <p className="small-note">Plans and pricing</p>
+        <h1 className="hero-title">Find the right Creative Cloud plan</h1>
+        <p className="hero-subtitle">Choose from Individuals, Business, and Students & Teachers plans.</p>
+        <div className="plans-audience-tabs">
+          <button className="plans-tab plans-tab-active" type="button">Students & Teachers</button>
+          <button className="plans-tab" type="button">Individuals</button>
+          <button className="plans-tab" type="button">Business</button>
+        </div>
+        <div className="badge-row">
+          <span className="status-badge"><strong>Meera</strong> · Student · Bangalore, India</span>
+          <span className="status-badge">Region: IN</span>
+          <span className="status-badge">Demo plan data for WebMCP prototype</span>
         </div>
       </section>
 
+      <section className="plans-card-grid">
+        {plansFixture.map((plan) => (
+          <article key={plan.id} className="plans-card">
+            <p className="small-note">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
+            <h2>{plan.name}</h2>
+            <p className="plans-price">
+              <span>{plan.currency} {plan.price}</span>
+              <small>/{plan.billingPeriod}</small>
+            </p>
+            <p className="small-note">{plan.studentEligible ? "Eligible with student verification" : "Standard eligibility"}</p>
+            <ul className="plans-feature-list">
+              {plan.includedApps.map((app) => (
+                <li key={`${plan.id}-${app}`}>{app}</li>
+              ))}
+            </ul>
+            <div className="badge-row">
+              <span className="status-badge">Generative credits: {plan.generativeCredits}</span>
+            </div>
+            <button type="button" className="button-link">Choose this plan</button>
+          </article>
+        ))}
+      </section>
+
       <section className="preview-card">
-        <h2 className="section-title">Latest recommendation output</h2>
+        <h2 className="section-title">Recommendation output</h2>
         <div className="code-block">{lastToolOutput}</div>
       </section>
 

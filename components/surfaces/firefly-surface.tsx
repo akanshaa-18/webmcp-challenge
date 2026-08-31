@@ -97,70 +97,83 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
 
   const localStatus = useWebMcpTools(localTools);
   const hasGenerated = missionStore.files.some((file) => file.id === "kaftan-logo-background-v1");
+  const activeAssetName = missionStore.currentAsset?.name ?? "Kaftan-logo-final.psd";
 
   return (
-    <div className="surface">
-      <header className="hero">
-        <p className="small-note">Adobe Firefly</p>
-        <h1 className="hero-title">Background transformation</h1>
-        <p className="hero-subtitle">
-          Create a dark premium textile background while preserving the approved Kaftan logo.
-        </p>
+    <div className="firefly-surface">
+      <header className="firefly-topbar">
+        <div className="firefly-brand">Adobe Firefly</div>
+        <div className="firefly-top-actions">
+          <span>Generative Fill</span>
+          <span>Text to image</span>
+          <span>Sketch to image</span>
+        </div>
       </header>
 
-      {!handoff ? (
-        <p className="status-error">Context carried from Creative Cloud is required to continue.</p>
-      ) : (
-        <section className="split">
-          <article className="preview-card">
-            <h2 className="section-title">Before</h2>
-            <Image
-              src="/demo-assets/kaftan-logo-final.svg"
-              alt="Kaftan logo source"
-              width={720}
-              height={420}
-              style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
-            />
-            <p className="small-note" style={{ marginTop: "8px" }}>
-              Approved source asset
-            </p>
-          </article>
-          <article className="preview-card">
-            <h2 className="section-title">After</h2>
-            {hasGenerated ? (
-              <Image
-                src="/demo-assets/kaftan-logo-background-v1.svg"
-                alt="Kaftan background variation"
-                width={720}
-                height={420}
-                style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
-              />
-            ) : (
-              <div className="preview-placeholder">
-                <div>
-                  <strong>Pending transformation</strong>
-                  <p className="small-note">Ready to generate variation.</p>
-                </div>
-              </div>
-            )}
-            <p className="small-note" style={{ marginTop: "8px" }}>
-              {hasGenerated ? "Generated background variation ready." : "Awaiting tool execution."}
-            </p>
-          </article>
-        </section>
-      )}
+      <div className="firefly-layout">
+        <aside className="firefly-left-panel">
+          <p className="small-note">Workflow</p>
+          <h2>Change background</h2>
+          <p className="small-note">Context carried from Adobe Home</p>
+          <div className="timeline-list" style={{ marginTop: "10px" }}>
+            <div className="timeline-item">Active creative: {activeAssetName}</div>
+            <div className="timeline-item">Task: Dark premium textile background</div>
+          </div>
+        </aside>
 
-      <section className="timeline-list">
-        <div className="timeline-item">Context carried from Creative Cloud</div>
-        <div className="timeline-item">Current mission asset: {missionStore.currentAsset?.id}</div>
-      </section>
+        <main className="firefly-canvas-wrap">
+          {!handoff ? (
+            <p className="status-error">Context carried from Creative Cloud is required to continue.</p>
+          ) : (
+            <section className="firefly-canvas-grid">
+              <article className="preview-card">
+                <h2 className="section-title">Source</h2>
+                <Image
+                  src="/demo-assets/kaftan-logo-final.svg"
+                  alt="Kaftan logo source"
+                  width={720}
+                  height={420}
+                  style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
+                />
+              </article>
+              <article className="preview-card">
+                <h2 className="section-title">Result</h2>
+                {hasGenerated ? (
+                  <Image
+                    src="/demo-assets/kaftan-logo-background-v1.svg"
+                    alt="Kaftan background variation"
+                    width={720}
+                    height={420}
+                    style={{ width: "100%", height: "auto", borderRadius: "10px", border: "1px solid #d6dae5" }}
+                  />
+                ) : (
+                  <div className="preview-placeholder">
+                    <div>
+                      <strong>Ready to generate</strong>
+                      <p className="small-note">Run change_background to create variation.</p>
+                    </div>
+                  </div>
+                )}
+              </article>
+            </section>
+          )}
+        </main>
 
-      <div className="badge-row">
-        <span className="status-badge">Continue in Adobe Express</span>
-        <span className="status-badge">Using Firefly result</span>
-        <Link className="button-link" href="/express">
-          Continue to Express
-        </Link>
+        <aside className="firefly-right-panel">
+          <h2 className="section-title">Prompt</h2>
+          <p className="small-note">
+            Create a dark premium textile background while preserving the approved Kaftan logo.
+          </p>
+          <div className="badge-row" style={{ marginTop: "12px" }}>
+            <span className="status-badge">{hasGenerated ? "Background complete" : "Pending execution"}</span>
+            <Link className="button-link" href="/express">
+              Continue to Express
+            </Link>
+          </div>
+          <p className="small-note" style={{ marginTop: "8px" }}>
+            Using Firefly result
+          </p>
+        </aside>
       </div>
 
       <details className="details-pane">
