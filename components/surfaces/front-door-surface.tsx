@@ -1,58 +1,104 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ToolRegistrationStatus } from "@/components/tool-registration-status";
 import { useMission } from "@/components/mission-provider";
-import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
+import { ToolRegistrationStatus } from "@/components/tool-registration-status";
 import { describeCapability } from "@/lib/capability-registry";
 import { plansFixture, userFixture } from "@/lib/fixtures";
+import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
 import { getMissionRuntime } from "@/lib/mission-runtime";
+import {
+  checkDeviceCompatibility,
+  findProductForTask,
+  getProductCapabilities,
+  getProductSystemRequirements,
+} from "@/lib/public-intelligence";
 import { comparePlanOptions, getPlanPrice } from "@/lib/plans";
-import { checkDeviceCompatibility } from "@/lib/public-intelligence";
 import { buildAdobeWorkflow } from "@/lib/workflow-composer";
 
 type WorkflowState = ReturnType<typeof buildAdobeWorkflow>;
 
-function includes(text: string, term: string) {
-  return text.toLowerCase().includes(term);
-}
+const DEFAULT_GOAL =
+  "I want to remove the background from a product image and turn it into an Instagram post.";
+const DEFAULT_DISCOVERY_PROMPT = "What Adobe app should I use to edit a video?";
+const DEFAULT_COMPATIBILITY_PROMPT = "Will Premiere Pro run on my Mac?";
 
 export function FrontDoorSurface() {
   const router = useRouter();
   const missionStore = useMission();
   const globalStatus = useGlobalWebMcpTools("Adobe Agentic Front Door", "/cc-home");
-  const [goal, setGoal] = useState(
-    "Remove the background from this product image and turn it into an Instagram post",
-  );
+  const [goal, setGoal] = useState(DEFAULT_GOAL);
   const [workflowResult, setWorkflowResult] = useState<WorkflowState | null>(null);
+  const [productPrompt, setProductPrompt] = useState(DEFAULT_DISCOVERY_PROMPT);
+  const compatibilityPrompt = DEFAULT_COMPATIBILITY_PROMPT;
+  const [deviceMemory, setDeviceMemory] = useState<string>("");
+  const [deviceStorage, setDeviceStorage] = useState<string>("");
+  const [showWorkflowDetails, setShowWorkflowDetails] = useState(false);
 
-  const planResult = useMemo(() => {
-    if (!includes(goal, "plan") && !includes(goal, "cost") && !includes(goal, "price")) {
+  const planSummary = (() => {
+    const recommendation = comparePlanOptions(plansFixture, userFixture, {
+      requirements: ["photo editing", "business card design", "background replacement"],
+      region: userFixture.region,
+      student: userFixture.student,
+    });
+    if (recommendation.status !== "ok" || !recommendation.data.recommendedPlan) {
       return null;
     }
-    const compared = comparePlanOptions(plansFixture, userFixture, {
-      requirements: ["photo editing", "background replacement", "business card design"],
+    const price = getPlanPrice(plansFixture, userFixture, {
+      planId: recommendation.data.recommendedPlan.planId,
+      region: userFixture.region,
     });
-    if (compared.status !== "ok" || !compared.data.recommendedPlan) {
+    if (price.status !== "ok") {
       return null;
     }
-    return getPlanPrice(plansFixture, userFixture, {
-      planId: compared.data.recommendedPlan.planId,
-    });
-  }, [goal]);
+    return {
+      plan: recommendation.data.recommendedPlan,
+      price: price.data,
+    };
+  })();
 
-  const compatibilityResult = useMemo(() => {
-    const lowerGoal = goal.toLowerCase();
-    if (!lowerGoal.includes("premiere") || !lowerGoal.includes("mac")) {
-      return null;
+  const productDiscovery = (() => {
+    const recommendation = findProductForTask(productPrompt);
+    if (recommendation.status !== "ok") {
+      return recommendation;
     }
-    return checkDeviceCompatibility("premiere-pro", "macos", {
-      osVersion: "macOS (unspecified)",
-      memoryGB: 16,
-      freeStorageGB: 100,
-    });
-  }, [goal]);
+    const top = recommendation.data.recommendations[0];
+    if (!top) {
+      return recommendation;
+    }
+    const capabilities = getProductCapabilities(top.productId);
+    return {
+      recommendation,
+      capabilities,
+    };
+  })();
+
+  const compatibilitySummary = (() => {
+    const requirements = getProductSystemRequirements("premiere-pro", "macos");
+    const memory = Number(deviceMemory);
+    const storage = Number(deviceStorage);
+    const hasMemory = Number.isFinite(memory) && memory > 0;
+    const hasStorage = Number.isFinite(storage) && storage > 0;
+    const compatibility = checkDeviceCompatibility(
+      "premiere-pro",
+      "macos",
+      hasMemory || hasStorage
+        ? {
+            osVersion: "macOS (user provided)",
+            memoryGB: hasMemory ? memory : undefined,
+            freeStorageGB: hasStorage ? storage : undefined,
+          }
+        : undefined,
+    );
+
+    return {
+      prompt: compatibilityPrompt,
+      requirements,
+      compatibility,
+      hasDeviceDetails: hasMemory || hasStorage,
+    };
+  })();
 
   const composeWorkflow = () => {
     const runtime = getMissionRuntime();
@@ -89,11 +135,11 @@ export function FrontDoorSurface() {
     if (!runtime) {
       return;
     }
+
     const firstStep = workflowResult.data.steps[0];
     if (!firstStep) {
       return;
     }
-
     const toolNameByProduct: Record<string, "firefly.change_background" | "express.create_business_card"> = {
       firefly: "firefly.change_background",
       express: "express.create_business_card",
@@ -125,30 +171,25 @@ export function FrontDoorSurface() {
   };
 
   const passport = missionStore.intentPassport;
+  const workflowSteps = workflowResult?.status === "ok" ? workflowResult.data.steps : [];
+  const currentStepDisplay = workflowSteps.length > 0 ? `Step 1 of ${workflowSteps.length}` : "Step 0 of 0";
 
   return (
-    <div className="surface">
-      <header className="hero">
-        <p className="small-note">Adobe Agentic Front Door</p>
-        <h1 className="hero-title">What are you trying to create?</h1>
-        <p className="hero-subtitle">
-          Understand globally, verify authoritatively, compose across Adobe, and hand off precisely.
+    <div className="frontdoor">
+      <section className="frontdoor-hero">
+        <p className="frontdoor-kicker">Adobe Agentic workspace</p>
+        <h1>What are you trying to create?</h1>
+        <p>
+          Ask Adobe what to use, what it costs, what runs on your device, and which workflow to start.
         </p>
-        <div className="badge-row">
-          <span className="status-badge">{userFixture.name} · Student · Bangalore, India</span>
-          <span className="status-badge">Public reference snapshots</span>
-        </div>
-      </header>
-
-      <section className="preview-card">
-        <label htmlFor="goal-input" className="section-title">User goal</label>
+        <label htmlFor="frontdoor-goal" className="frontdoor-goal-label">Your goal</label>
         <textarea
-          id="goal-input"
+          id="frontdoor-goal"
+          className="frontdoor-goal-input"
           value={goal}
           onChange={(event) => setGoal(event.target.value)}
-          style={{ width: "100%", minHeight: 88, marginTop: 8 }}
         />
-        <div className="badge-row" style={{ marginTop: 10 }}>
+        <div className="frontdoor-hero-actions">
           <button type="button" className="button-link" onClick={composeWorkflow}>
             Compose Adobe workflow
           </button>
@@ -157,96 +198,173 @@ export function FrontDoorSurface() {
               Continue to {workflowResult.data.steps[0]?.productName ?? "destination"}
             </button>
           ) : null}
+          <button
+            type="button"
+            className="frontdoor-secondary-button"
+            onClick={() => setShowWorkflowDetails((current) => !current)}
+          >
+            {showWorkflowDetails ? "Hide workflow details" : "View workflow details"}
+          </button>
         </div>
       </section>
 
       {workflowResult?.status === "ok" ? (
-        <section className="split">
-          <article className="preview-card">
-            <h2 className="section-title">Adobe workflow</h2>
-            <div className="timeline-list">
-              {workflowResult.data.steps.map((step) => (
-                <div key={step.capabilityId} className="timeline-item">
-                  Step {step.order}: {step.productName} · {step.capability}
-                </div>
-              ))}
-            </div>
-            <p className="small-note" style={{ marginTop: 8 }}>
-              Start in {workflowResult.data.steps[0]?.productName}
-            </p>
-          </article>
-          <article className="preview-card">
-            <h2 className="section-title">Why Adobe recommends this</h2>
-            <div className="timeline-list">
-              {workflowResult.data.steps.map((step) => (
-                <div key={`why-${step.capabilityId}`} className="timeline-item">
-                  <strong>{step.productName}:</strong> {step.why}
-                </div>
-              ))}
-            </div>
-          </article>
+        <section className="frontdoor-workflow">
+          <h2>Your Adobe workflow</h2>
+          <div className="frontdoor-workflow-steps">
+            {workflowResult.data.steps.map((step) => (
+              <article key={step.capabilityId} className="frontdoor-step-card">
+                <p className="frontdoor-step-order">{step.order}</p>
+                <h3>{step.productName}</h3>
+                <p>{step.capability}</p>
+                <p className="small-note">Why: {step.why}</p>
+                <p className="small-note">Requires: {step.requires.join(", ") || "none"}</p>
+                <p className="small-note">Produces: {step.produces}</p>
+              </article>
+            ))}
+          </div>
+          <p className="small-note">
+            Recommended starting point: {workflowResult.data.steps[0]?.productName} ·{" "}
+            {workflowResult.data.recommendedStart.destinationUrl}
+          </p>
         </section>
       ) : null}
 
       {workflowResult?.status === "error" ? (
-        <section className="preview-card">
-          <h2 className="section-title">Workflow result</h2>
+        <section className="frontdoor-card">
+          <h2>Workflow result</h2>
           <p className="status-error">{workflowResult.code}: {workflowResult.message}</p>
         </section>
       ) : null}
 
-      <section className="split">
-        <article className="preview-card">
-          <h2 className="section-title">Intent Passport</h2>
-          <div className="timeline-list">
-            <div className="timeline-item">Goal: {passport.userGoal}</div>
-            <div className="timeline-item">
-              Requirements: {passport.requirements.length ? passport.requirements.join(", ") : "none"}
+      <section className="frontdoor-grid">
+        <article className="frontdoor-card">
+          <h2>Why Adobe recommends this</h2>
+          {workflowResult?.status === "ok" ? (
+            <div className="frontdoor-activity-list">
+              {workflowResult.data.steps.map((step) => (
+                <p key={`why-${step.capabilityId}`}>
+                  <strong>{step.productName}</strong>: {step.why}
+                </p>
+              ))}
+              <p>
+                <strong>Workflow dependency:</strong> background transformation happens before social adaptation.
+              </p>
             </div>
-            <div className="timeline-item">
-              Discovered: {passport.selectedProducts.length ? passport.selectedProducts.join(", ") : "none"}
-            </div>
-            <div className="timeline-item">
-              Workflow: {passport.recommendedWorkflow ?? "not composed"}
-            </div>
+          ) : (
+            <p className="small-note">Compose a workflow to see capability reasoning and dependencies.</p>
+          )}
+        </article>
+
+        <article className="frontdoor-card">
+          <h2>Intent Passport</h2>
+          <div className="frontdoor-activity-list">
+            <p><strong>Goal</strong>: {passport.userGoal}</p>
+            <p><strong>Context</strong>: Student · India</p>
+            <p><strong>Requirements</strong>: {passport.requirements.join(", ") || "Not set"}</p>
+            <p><strong>Discovered</strong>: {passport.selectedProducts.join(", ") || "Not set"}</p>
+            <p><strong>Recommended</strong>: {passport.recommendedWorkflow ?? "Not composed"}</p>
+            <p><strong>Current</strong>: {currentStepDisplay}</p>
+          </div>
+          <h3 className="frontdoor-subheading">Activity</h3>
+          <div className="frontdoor-activity-list">
+            <p>✓ Goal understood</p>
+            <p>{passport.discoveredCapabilities.includes("public.find_product_for_task") ? "✓" : "○"} Product capability discovered</p>
+            <p>{passport.discoveredCapabilities.includes("public.build_adobe_workflow") ? "✓" : "○"} Workflow composed</p>
+            <p>{passport.selectedDestination ? "✓" : "○"} Start destination identified</p>
           </div>
         </article>
-        <article className="preview-card">
-          <h2 className="section-title">Public workflow handoff</h2>
-          <p className="small-note">
-            Asset context can carry &quot;User-provided image&quot; intent metadata, but binary transfer into external
-            Adobe apps is not performed in this prototype.
-          </p>
-          <p className="small-note">Handoff trail: {passport.handoffTrail.length}</p>
+      </section>
+
+      <section className="frontdoor-grid">
+        <article className="frontdoor-card">
+          <h2>Adobe Plans</h2>
+          <p className="small-note">Student · India</p>
+          {planSummary ? (
+            <>
+              <p><strong>Recommended plan:</strong> {planSummary.plan.planId}</p>
+              <p>
+                <strong>Regional price:</strong> {planSummary.price.currency} {planSummary.price.amount}/
+                {planSummary.price.billingPeriod}
+              </p>
+              <p className="small-note">Data: {planSummary.price.dataSource}</p>
+            </>
+          ) : (
+            <p className="small-note">Plan recommendation is unavailable.</p>
+          )}
+          <a className="frontdoor-text-link" href="/plans">Explore plans</a>
+        </article>
+
+        <article className="frontdoor-card">
+          <h2>Device compatibility</h2>
+          <p className="small-note">{compatibilitySummary.prompt}</p>
+          <div className="frontdoor-inline-inputs">
+            <label>
+              Memory (GB)
+              <input
+                type="number"
+                min={1}
+                value={deviceMemory}
+                onChange={(event) => setDeviceMemory(event.target.value)}
+              />
+            </label>
+            <label>
+              Free storage (GB)
+              <input
+                type="number"
+                min={1}
+                value={deviceStorage}
+                onChange={(event) => setDeviceStorage(event.target.value)}
+              />
+            </label>
+          </div>
+          {compatibilitySummary.requirements.status === "ok" ? (
+            <p className="small-note">Source: {compatibilitySummary.requirements.data.dataSource}</p>
+          ) : null}
+          {compatibilitySummary.compatibility.status === "ok" ? (
+            <p><strong>Result:</strong> {String(compatibilitySummary.compatibility.data.compatibility)}</p>
+          ) : (
+            <p className="small-note">More device information needed.</p>
+          )}
+        </article>
+
+        <article className="frontdoor-card">
+          <h2>Find the right Adobe product</h2>
+          <textarea
+            className="frontdoor-goal-input"
+            style={{ minHeight: 72 }}
+            value={productPrompt}
+            onChange={(event) => setProductPrompt(event.target.value)}
+          />
+          {"recommendation" in productDiscovery && productDiscovery.recommendation.status === "ok" ? (
+            <>
+              <p>
+                <strong>Recommended:</strong> {productDiscovery.recommendation.data.recommendations[0]?.productName}
+              </p>
+              {"status" in productDiscovery.capabilities && productDiscovery.capabilities.status === "ok" ? (
+                <p className="small-note">
+                  Capabilities: {productDiscovery.capabilities.data.capabilities.map((capability) => capability.name).join(", ")}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="small-note">Product recommendation unavailable for this prompt.</p>
+          )}
         </article>
       </section>
 
-      <section className="split">
-        {planResult && planResult.status === "ok" ? (
-          <article className="preview-card">
-            <h2 className="section-title">Plan recommendation</h2>
-            <p>Student · India</p>
-            <p>
-              {planResult.data.planId} · {planResult.data.currency} {planResult.data.amount}/
-              {planResult.data.billingPeriod}
-            </p>
-            <p className="small-note">Source: {planResult.data.dataSource}</p>
-          </article>
-        ) : null}
-        {compatibilityResult && compatibilityResult.status === "ok" ? (
-          <article className="preview-card">
-            <h2 className="section-title">Compatibility check</h2>
-            <p>Premiere Pro · macOS</p>
-            <p>Result: {String(compatibilityResult.data.compatibility)}</p>
-            <p className="small-note">Source: {compatibilityResult.data.dataSource}</p>
-          </article>
-        ) : null}
-      </section>
-
-      <footer className="small-note" style={{ marginTop: 12 }}>
-        Data disclosure: product capabilities, plans, and requirements are public reference snapshots for this
-        WebMCP prototype, not live account or production backend data.
-      </footer>
+      {showWorkflowDetails && workflowResult?.status === "ok" ? (
+        <section className="frontdoor-card">
+          <h2>Workflow details</h2>
+          <p className="small-note">
+            Asset context may include &quot;User-provided image&quot;. Binary transfer into external Adobe surfaces is
+            not performed in this prototype.
+          </p>
+          <p className="small-note">
+            Data disclosure: public reference snapshot catalog only; not live account or entitlement data.
+          </p>
+        </section>
+      ) : null}
 
       <details className="details-pane">
         <summary>Developer details</summary>

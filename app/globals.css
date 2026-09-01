@@ -716,3 +716,201 @@ body { background:var(--adobe-canvas); font-family:var(--font-geist-sans), "Adob
 .express-surface{min-height:700px;gap:0;background:#e9e9eb}.express-topbar{min-height:58px;padding:0 18px;align-items:center}.express-brand{font-size:1.1rem;color:#222}.express-header-actions{align-items:center}.express-layout{grid-template-columns:82px minmax(0,1fr) 260px;gap:0;padding:0;min-height:570px}.express-left-rail{padding:14px 8px;border:0;border-right:1px solid #d5d5d5;border-radius:0;background:#fff}.express-tool{text-align:center;padding:9px 4px;border-radius:6px;font-size:.7rem}.express-tool-active{background:#e8f2ff;color:#0d66d0}.express-editor-canvas{border:0;border-radius:0;padding:25px;background:#e5e5e7;align-content:center}.express-editor-canvas>.small-note{align-self:start;color:#5c5c5c}.express-artboard-frame{width:min(720px,92%);margin:0 auto;padding:12px;border-radius:3px;background:#fff;border:1px solid #c4c4c4;box-shadow:0 4px 15px rgba(0,0,0,.18)}.express-artboard-frame img{border:0!important;border-radius:0!important}.express-right-panel{border:0;border-left:1px solid #d5d5d5;border-radius:0;padding:20px 16px}.express-right-panel .timeline-item{border-radius:5px;padding:8px;font-size:.82rem}.express-surface .split{margin:18px}.express-surface>.details-pane{margin:0 18px 18px}
 
 @media (max-width:760px){.mission-mini-links{display:none}.mission-chip-shell{justify-content:space-between}.plans-top-links{display:none}.plans-hero{padding-top:38px}.plans-card-grid{padding-top:24px}.cc-layout{grid-template-columns:1fr}.cc-sidebar,.cc-recent-panel{display:none}.cc-topbar{grid-template-columns:auto 1fr auto}.cc-search{overflow:hidden;white-space:nowrap}.firefly-layout,.express-layout{grid-template-columns:1fr}.firefly-left-panel{display:none}.firefly-right-panel{border-left:0;border-top:1px solid #333}.firefly-canvas-wrap{padding:16px}.firefly-canvas-grid{grid-template-columns:1fr}.express-left-rail{display:flex;overflow-x:auto;border-right:0;border-bottom:1px solid #d5d5d5}.express-tool{min-width:76px}.express-right-panel{border-left:0;border-top:1px solid #d5d5d5}.express-editor-canvas{padding:16px}.express-artboard-frame{width:100%}}
+
+/* Phase 4A: public logged-out Adobe front door refinement */
+.mission-chip-shell {
+  min-height: 48px;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.mission-chip {
+  order: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #fff;
+}
+
+.mission-chip-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.mission-mini-links {
+  margin-right: 0;
+  flex: 1;
+}
+
+.mission-mini-link {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
+.secondary-button {
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.frontdoor {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 0;
+  padding: clamp(20px, 3vw, 36px) clamp(16px, 4vw, 64px) 44px;
+  display: grid;
+  gap: 24px;
+}
+
+.frontdoor-hero {
+  display: grid;
+  gap: 10px;
+  max-width: 880px;
+}
+
+.frontdoor-kicker {
+  color: #666;
+  font-size: 0.86rem;
+}
+
+.frontdoor-hero h1 {
+  font-size: clamp(2rem, 4.6vw, 3.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  color: #1f1f1f;
+}
+
+.frontdoor-hero p {
+  color: #4f4f4f;
+  font-size: 1.02rem;
+}
+
+.frontdoor-goal-label {
+  font-weight: 650;
+  margin-top: 8px;
+}
+
+.frontdoor-goal-input {
+  width: 100%;
+  min-height: 112px;
+  border: 1px solid #d6d6d6;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.frontdoor-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.frontdoor-secondary-button {
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  color: #2f2f2f;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.88rem;
+}
+
+.frontdoor-workflow {
+  display: grid;
+  gap: 14px;
+}
+
+.frontdoor-workflow h2,
+.frontdoor-card h2 {
+  font-size: 1.2rem;
+  letter-spacing: -0.015em;
+}
+
+.frontdoor-workflow-steps {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.frontdoor-step-card,
+.frontdoor-card {
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+  display: grid;
+  gap: 8px;
+}
+
+.frontdoor-step-order {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: #f0f6ff;
+  color: #0d66d0;
+  font-weight: 700;
+}
+
+.frontdoor-step-card h3 {
+  font-size: 1.02rem;
+}
+
+.frontdoor-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.frontdoor-subheading {
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
+.frontdoor-activity-list {
+  display: grid;
+  gap: 6px;
+}
+
+.frontdoor-text-link {
+  color: #0d66d0;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.frontdoor-inline-inputs {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.frontdoor-inline-inputs label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #4f4f4f;
+}
+
+.frontdoor-inline-inputs input {
+  border: 1px solid #d6d6d6;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+@media (max-width: 1200px) {
+  .frontdoor-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .frontdoor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .frontdoor-inline-inputs {
+    grid-template-columns: 1fr;
+  }
+}
