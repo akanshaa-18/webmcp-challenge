@@ -7,6 +7,7 @@ import { MissionProvider } from "@/components/mission-provider";
 import { CCHomeSurface } from "@/components/surfaces/cc-home-surface";
 import { ExpressSurface } from "@/components/surfaces/express-surface";
 import { FireflySurface } from "@/components/surfaces/firefly-surface";
+import { FrontDoorSurface } from "@/components/surfaces/front-door-surface";
 import { PlansSurface } from "@/components/surfaces/plans-surface";
 import { UniversalNav } from "@/components/universal-nav";
 import { seededMission } from "@/lib/fixtures";
@@ -22,12 +23,13 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/project/kaftan",
 }));
 
-type Stage = "project" | "plans" | "firefly" | "express";
+type Stage = "home" | "project" | "plans" | "firefly" | "express";
 
 function Harness({ stage, handoffId }: { stage: Stage; handoffId?: string | null }) {
   return (
     <MissionProvider>
       <UniversalNav />
+      {stage === "home" ? <FrontDoorSurface /> : null}
       {stage === "project" ? <CCHomeSurface route="/project/kaftan" surface="Project" /> : null}
       {stage === "plans" ? <PlansSurface /> : null}
       {stage === "firefly" ? <FireflySurface handoffIdFromRoute={handoffId ?? null} /> : null}
@@ -75,6 +77,48 @@ describe("integration journey checkpoint", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     pushSpy.mockClear();
+  });
+
+  it("composes workflow on front door and continues with structured handoff", async () => {
+    const { tools } = getRegisteredTools();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Harness stage="home" />);
+    });
+    await flush();
+
+    const workflow = await invokeTool(tools, "build_adobe_workflow", {
+      task: "remove background and create instagram post",
+    });
+    expect(workflow.status).toBe("ok");
+
+    const composeButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Compose Adobe workflow",
+    );
+    expect(composeButton).toBeDefined();
+    await act(async () => {
+      composeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const continueButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim()?.startsWith("Continue to Adobe Firefly"),
+    );
+    expect(continueButton).toBeDefined();
+    await act(async () => {
+      continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    const destination = pushSpy.mock.calls.at(-1)?.[0] as string | undefined;
+    expect(destination).toMatch(/^\/firefly\?handoff=/);
+    const handoffId = destination?.split("handoff=")[1];
+    const handoff = getMissionRuntime()?.getHandoff(handoffId ?? "");
+    expect(handoff?.selectedWorkflowId).toBe("wf-firefly-express");
+    expect(handoff?.selectedWorkflowStep).toBe("firefly-background-transformation");
+
+    await act(async () => {
+      root.unmount();
+    });
   });
 
   it("runs Plans and Kaftan end-to-end with WebMCP tool transitions", async () => {
@@ -232,9 +276,9 @@ describe("integration journey checkpoint", () => {
 
     const resumed = await invokeTool(tools, "resume_workflow");
     expect(resumed.status).toBe("ok");
-    const resumedData = resumed.data as { handoffHistory: string[]; destinationRoute: string } | undefined;
+    const resumedData = resumed.data as { handoffTrail: string[]; destinationRoute: string } | undefined;
     expect(resumedData?.destinationRoute).toBe("/project/kaftan");
-    expect(resumedData?.handoffHistory.length).toBeGreaterThanOrEqual(2);
+    expect(resumedData?.handoffTrail.length).toBeGreaterThanOrEqual(2);
     expect(pushSpy).toHaveBeenLastCalledWith("/project/kaftan");
     expect(getMissionRuntime()?.mission).toEqual(missionBeforeResume);
 

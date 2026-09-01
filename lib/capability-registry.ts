@@ -2,6 +2,105 @@ import { ToolManifest } from "@/lib/types";
 
 export const toolManifests: ToolManifest[] = [
   {
+    toolName: "public.build_adobe_workflow",
+    ownerSurface: "Adobe Agentic Front Door",
+    description:
+      "Compose a multi-step Adobe workflow for a user's creative goal using publicly described Adobe capabilities and their dependencies.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string" },
+      },
+      required: ["task"],
+    },
+    requiredContext: ["task", "intent.userConstraints"],
+    destinationRoute: "/cc-home",
+    executionMode: "global-discovery",
+    readOnly: true,
+    audience: "public",
+  },
+  {
+    toolName: "public.find_product_for_task",
+    ownerSurface: "Global",
+    description: "Recommend Adobe products for a task using the public reference snapshot catalog.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        task: { type: "string" },
+      },
+      required: ["task"],
+    },
+    requiredContext: ["task"],
+    destinationUrl: "https://www.adobe.com/",
+    executionMode: "global-discovery",
+    readOnly: true,
+    audience: "public",
+  },
+  {
+    toolName: "public.get_product_capabilities",
+    ownerSurface: "Global",
+    description: "Return structured capabilities for a product from the public reference snapshot catalog.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        productId: { type: "string" },
+      },
+      required: ["productId"],
+    },
+    requiredContext: ["productId"],
+    destinationUrl: "https://www.adobe.com/",
+    executionMode: "global-discovery",
+    readOnly: true,
+    audience: "public",
+  },
+  {
+    toolName: "public.get_product_system_requirements",
+    ownerSurface: "Global",
+    description:
+      "Return platform-specific product system requirements from the public reference snapshot catalog.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        productId: { type: "string" },
+        platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
+      },
+      required: ["productId", "platform"],
+    },
+    requiredContext: ["productId", "platform"],
+    destinationUrl: "https://helpx.adobe.com/",
+    executionMode: "global-discovery",
+    readOnly: true,
+    audience: "public",
+  },
+  {
+    toolName: "public.check_device_compatibility",
+    ownerSurface: "Global",
+    description: "Check product compatibility against provided device context using snapshot requirements.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        productId: { type: "string" },
+        platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
+        device: {
+          type: "object",
+          properties: {
+            osVersion: { type: "string" },
+            memoryGB: { type: "number" },
+            freeStorageGB: { type: "number" },
+            processor: { type: "string" },
+            gpu: { type: "string" },
+          },
+        },
+      },
+      required: ["productId", "platform", "device"],
+    },
+    requiredContext: ["productId", "platform", "device"],
+    destinationUrl: "https://helpx.adobe.com/",
+    executionMode: "global-discovery",
+    readOnly: true,
+    audience: "public",
+  },
+  {
     toolName: "adobe_plans.get_regional_plans",
     ownerSurface: "Adobe Plans",
     description: "Return regional demo Adobe plans filtered by audience and location context.",
@@ -16,6 +115,7 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,
+    audience: "public",
   },
   {
     toolName: "adobe_plans.get_plan_capabilities",
@@ -32,6 +132,7 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,
+    audience: "public",
   },
   {
     toolName: "adobe_plans.get_plan_price",
@@ -49,6 +150,7 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,
+    audience: "public",
   },
   {
     toolName: "adobe_plans.compare_plan_options",
@@ -67,6 +169,7 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,
+    audience: "public",
   },
   {
     toolName: "cc_home.get_project_context",
@@ -77,6 +180,7 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/project/kaftan",
     executionMode: "local-execution",
     readOnly: true,
+    audience: "legacy-private",
   },
   {
     toolName: "cc_home.search_files",
@@ -93,6 +197,24 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/project/kaftan",
     executionMode: "local-execution",
     readOnly: true,
+    audience: "legacy-private",
+  },
+  {
+    toolName: "cc_home.get_file_metadata",
+    ownerSurface: "CC Home",
+    description: "Get metadata for one creative file by ID from the legacy private project context.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        fileId: { type: "string" },
+      },
+      required: ["fileId"],
+    },
+    requiredContext: ["projectId", "fileId"],
+    destinationRoute: "/project/kaftan",
+    executionMode: "local-execution",
+    readOnly: true,
+    audience: "legacy-private",
   },
   {
     toolName: "cc_home.find_duplicates",
@@ -109,6 +231,7 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/project/kaftan",
     executionMode: "local-execution",
     readOnly: true,
+    audience: "legacy-private",
   },
   {
     toolName: "cc_home.delete_file",
@@ -127,6 +250,7 @@ export const toolManifests: ToolManifest[] = [
     destinationRoute: "/project/kaftan",
     executionMode: "local-execution",
     readOnly: false,
+    audience: "legacy-private",
   },
   {
     toolName: "firefly.change_background",
@@ -141,8 +265,10 @@ export const toolManifests: ToolManifest[] = [
     },
     requiredContext: ["missionId", "projectId", "assetIds", "constraints"],
     destinationRoute: "/firefly",
+    destinationUrl: "https://firefly.adobe.com/",
     executionMode: "local-execution",
     readOnly: false,
+    audience: "public",
   },
   {
     toolName: "express.create_business_card",
@@ -157,8 +283,10 @@ export const toolManifests: ToolManifest[] = [
     },
     requiredContext: ["missionId", "projectId", "assetIds", "constraints"],
     destinationRoute: "/express",
+    destinationUrl: "https://express.adobe.com/",
     executionMode: "local-execution",
     readOnly: false,
+    audience: "public",
   },
 ];
 
@@ -171,6 +299,56 @@ export function findToolsForTask(task: string): {
   alternatives: ToolManifest[];
 } {
   const normalizedTask = task.toLowerCase();
+
+  if (
+    normalizedTask.includes("workflow") ||
+    normalizedTask.includes("which adobe apps should i use") ||
+    (normalizedTask.includes("background") && normalizedTask.includes("instagram"))
+  ) {
+    const recommendedTool = describeCapability("public.build_adobe_workflow");
+    return {
+      recommendedTool,
+      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.build_adobe_workflow"),
+    };
+  }
+
+  if (
+    normalizedTask.includes("which adobe app") ||
+    normalizedTask.includes("which product") ||
+    normalizedTask.includes("what product should") ||
+    normalizedTask.includes("right adobe product")
+  ) {
+    const recommendedTool = describeCapability("public.find_product_for_task");
+    return {
+      recommendedTool,
+      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.find_product_for_task"),
+    };
+  }
+
+  if (
+    normalizedTask.includes("will ") &&
+    normalizedTask.includes(" run") &&
+    (normalizedTask.includes("macos") || normalizedTask.includes("windows"))
+  ) {
+    const recommendedTool = describeCapability("public.check_device_compatibility");
+    return {
+      recommendedTool,
+      alternatives: [
+        ...toolManifests.filter((tool) => tool.toolName === "public.get_product_system_requirements"),
+        ...toolManifests.filter((tool) => tool.toolName !== "public.check_device_compatibility"),
+      ],
+    };
+  }
+
+  if (normalizedTask.includes("system requirement") || normalizedTask.includes("requirements")) {
+    const recommendedTool = describeCapability("public.get_product_system_requirements");
+    return {
+      recommendedTool,
+      alternatives: toolManifests.filter(
+        (tool) => tool.toolName !== "public.get_product_system_requirements",
+      ),
+    };
+  }
 
   if (normalizedTask.includes("background")) {
     const recommendedTool = describeCapability("firefly.change_background");
@@ -210,9 +388,8 @@ export function findToolsForTask(task: string): {
     };
   }
 
-  const recommendedTool = describeCapability("cc_home.search_files");
   return {
-    recommendedTool,
-    alternatives: toolManifests.filter((tool) => tool.toolName !== "cc_home.search_files"),
+    recommendedTool: null,
+    alternatives: toolManifests,
   };
 }

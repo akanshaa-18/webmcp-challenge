@@ -40,7 +40,7 @@ export default function CapabilitiesPage() {
                 <td>{manifest.toolName}</td>
                 <td>{manifest.ownerSurface}</td>
                 <td>{manifest.description}</td>
-                <td>{manifest.destinationRoute}</td>
+                <td>{manifest.destinationRoute ?? manifest.destinationUrl ?? "n/a"}</td>
                 <td>{manifest.readOnly ? "read-only" : "mutating"}</td>
                 <td>{manifest.requiredContext.join(", ")}</td>
               </tr>

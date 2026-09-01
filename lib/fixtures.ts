@@ -1,4 +1,4 @@
-import { CreativeFile, Mission, Plan, ProjectFixture, UserFixture } from "@/lib/types";
+import { CreativeFile, IntentPassport, Mission, Plan, ProjectFixture, UserFixture } from "@/lib/types";
 
 export const userFixture: UserFixture = {
   name: "Meera",
@@ -70,6 +70,25 @@ export const seededMission: Mission = {
   currentStep: "Discover capabilities",
   currentAssetId: "kaftan-logo-final",
   handoffHistory: [],
+};
+
+export const seededIntentPassport: IntentPassport = {
+  id: "intent-passport-session",
+  userGoal: "Find the right Adobe products and plans for my workflow.",
+  region: userFixture.region,
+  audience: userFixture.student ? "student" : "individual",
+  requirements: [],
+  discoveredCapabilities: [],
+  selectedProducts: [],
+  recommendedWorkflow: undefined,
+  selectedDestination: "/plans",
+  handoffTrail: [],
+  userConstraints: [
+    "Use public Adobe information",
+    "Do not perform purchases",
+  ],
+  createdAt: "2026-09-01T00:00:00.000Z",
+  updatedAt: "2026-09-01T00:00:00.000Z",
 };
 
 export const plansFixture: Plan[] = [

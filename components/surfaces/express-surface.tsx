@@ -60,8 +60,9 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
             return toolError("WRONG_SURFACE", "This handoff is not targeting the Express surface.");
           }
 
-          const sourceAssetId = input?.sourceAssetId ?? activeHandoff.assetIds[0];
-          if (!activeHandoff.assetIds.includes(sourceAssetId)) {
+          const handoffAssetIds = activeHandoff.assetIds ?? [];
+          const sourceAssetId = input?.sourceAssetId ?? handoffAssetIds[0];
+          if (!sourceAssetId || !handoffAssetIds.includes(sourceAssetId)) {
             return toolError(
               "INVALID_HANDOFF_ASSET",
               `Asset ${sourceAssetId} is not part of handoff ${input.handoffId ?? handoffFromUrl}.`,
@@ -157,6 +158,18 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
               Return to Project
             </Link>
           </div>
+          <a
+            className="button-link"
+            href="https://express.adobe.com/"
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: "inline-block", marginTop: "10px" }}
+          >
+            Continue in Adobe Express
+          </a>
+          <p className="small-note" style={{ marginTop: "8px" }}>
+            This route confirms handoff continuity for the demo; production output happens on Adobe Express.
+          </p>
         </aside>
       </div>
 

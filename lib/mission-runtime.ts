@@ -1,6 +1,7 @@
-import { CreativeFile, DeletionApprovalRequest, HandoffContext, Mission, Surface } from "@/lib/types";
+import { CreativeFile, DeletionApprovalRequest, HandoffContext, IntentPassport, Mission, Surface } from "@/lib/types";
 
 export interface MissionRuntime {
+  intentPassport: IntentPassport;
   mission: Mission;
   files: CreativeFile[];
   handoffs: Record<string, HandoffContext>;
@@ -15,10 +16,13 @@ export interface MissionRuntime {
     fromSurface: Surface;
     toSurface: Surface;
     toolName: string;
-    projectId: string;
-    assetIds: string[];
+    projectId?: string;
+    assetIds?: string[];
     task: string;
     expectedResult: string;
+    selectedWorkflowId?: string;
+    selectedWorkflowStep?: string;
+    selectedDestination?: string;
     brandContext?: string;
     market?: string;
   }) => HandoffContext;
@@ -26,6 +30,8 @@ export interface MissionRuntime {
   setCurrentStep: (step: string) => void;
   upsertFile: (file: CreativeFile) => void;
   setMission: (mission: Mission) => void;
+  updateIntentPassport: (updater: (current: IntentPassport) => IntentPassport) => void;
+  setIntentPassport: (next: IntentPassport) => void;
   resetDemo: () => void;
 }
 

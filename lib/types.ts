@@ -1,4 +1,11 @@
-export type Surface = "CC Home" | "Project" | "Firefly" | "Express" | "Adobe Plans";
+export type Surface =
+  | "CC Home"
+  | "Project"
+  | "Firefly"
+  | "Express"
+  | "Adobe Plans"
+  | "Adobe Agentic Front Door"
+  | "Global";
 
 export interface UserFixture {
   name: string;
@@ -63,20 +70,45 @@ export interface Mission {
   handoffHistory: string[];
 }
 
+export interface IntentPassport {
+  id: string;
+  userGoal: string;
+  region?: string;
+  audience?: string;
+  requirements: string[];
+  discoveredCapabilities: string[];
+  selectedProducts: string[];
+  selectedWorkflowId?: string;
+  selectedWorkflowStep?: string;
+  recommendedWorkflow?: string;
+  selectedDestination?: string;
+  handoffTrail: string[];
+  userConstraints?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface HandoffContext {
   handoffId: string;
-  missionId: string;
+  missionId?: string;
+  intentPassportId?: string;
   fromSurface: Surface;
   toSurface: Surface;
   toolName: string;
-  projectId: string;
-  assetIds: string[];
+  projectId?: string;
+  assetIds?: string[];
   userGoal: string;
   task: string;
+  requirements?: string[];
+  discoveredCapabilities?: string[];
+  selectedWorkflowId?: string;
+  selectedWorkflowStep?: string;
+  selectedDestination?: string;
+  userConstraints?: string[];
   brandContext?: string;
   market?: string;
-  constraints: Mission["constraints"];
-  previousSteps: string[];
+  constraints?: Mission["constraints"];
+  previousSteps?: string[];
   expectedResult: string;
 }
 
@@ -86,9 +118,11 @@ export interface ToolManifest {
   description: string;
   inputSchema: Record<string, unknown>;
   requiredContext: string[];
-  destinationRoute: string;
+  destinationRoute?: string;
+  destinationUrl?: string;
   executionMode: "global-discovery" | "local-execution";
   readOnly: boolean;
+  audience: "public" | "legacy-private";
 }
 
 export interface ToolError {

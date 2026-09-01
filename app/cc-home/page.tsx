@@ -1,6 +1,5 @@
-import { CCHomeSurface } from "@/components/surfaces/cc-home-surface";
+import { FrontDoorSurface } from "@/components/surfaces/front-door-surface";
 
 export default function CCHomePage() {
-  return <CCHomeSurface route="/cc-home" surface="CC Home" />;
+  return <FrontDoorSurface />;
 }
-

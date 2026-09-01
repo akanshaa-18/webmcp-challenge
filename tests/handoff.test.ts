@@ -17,8 +17,7 @@ describe("handoff creation", () => {
 
     expect(handoff.toSurface).toBe("Firefly");
     expect(handoff.toolName).toBe("firefly.change_background");
-    expect(handoff.constraints.noDestructiveActionWithoutApproval).toBe(true);
-    expect(handoff.assetIds[0]).toBe("kaftan-logo-final");
+    expect(handoff.constraints?.noDestructiveActionWithoutApproval).toBe(true);
+    expect(handoff.assetIds?.[0]).toBe("kaftan-logo-final");
   });
 });
-

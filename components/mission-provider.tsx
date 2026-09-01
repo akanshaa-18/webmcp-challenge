@@ -1,14 +1,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { creativeFilesFixture, seededMission } from "@/lib/fixtures";
+import { creativeFilesFixture, seededIntentPassport, seededMission } from "@/lib/fixtures";
 import { createHandoff } from "@/lib/handoff";
 import { setMissionRuntime } from "@/lib/mission-runtime";
-import { CreativeFile, DeletionApprovalRequest, HandoffContext, Mission, Surface } from "@/lib/types";
+import { CreativeFile, DeletionApprovalRequest, HandoffContext, IntentPassport, Mission, Surface } from "@/lib/types";
 
 const STORAGE_KEY = "kaftan.mission.state.v1";
 
 interface MissionState {
+  intentPassport: IntentPassport;
   mission: Mission;
   files: CreativeFile[];
   handoffs: Record<string, HandoffContext>;
@@ -16,6 +17,7 @@ interface MissionState {
 }
 
 interface MissionContextValue {
+  intentPassport: IntentPassport;
   mission: Mission;
   files: CreativeFile[];
   handoffs: Record<string, HandoffContext>;
@@ -30,10 +32,13 @@ interface MissionContextValue {
     fromSurface: Surface;
     toSurface: Surface;
     toolName: string;
-    projectId: string;
-    assetIds: string[];
+    projectId?: string;
+    assetIds?: string[];
     task: string;
     expectedResult: string;
+    selectedWorkflowId?: string;
+    selectedWorkflowStep?: string;
+    selectedDestination?: string;
     brandContext?: string;
     market?: string;
   }) => HandoffContext;
@@ -41,6 +46,8 @@ interface MissionContextValue {
   setCurrentStep: (step: string) => void;
   upsertFile: (file: CreativeFile) => void;
   setMission: (mission: Mission) => void;
+  updateIntentPassport: (updater: (current: IntentPassport) => IntentPassport) => void;
+  setIntentPassport: (next: IntentPassport) => void;
   resetDemo: () => void;
 }
 
@@ -48,18 +55,36 @@ const MissionContext = createContext<MissionContextValue | null>(null);
 
 function loadInitialState(): MissionState {
   if (typeof window === "undefined") {
-    return { mission: seededMission, files: creativeFilesFixture, handoffs: {}, deletionApprovals: {} };
+    return {
+      intentPassport: seededIntentPassport,
+      mission: seededMission,
+      files: creativeFilesFixture,
+      handoffs: {},
+      deletionApprovals: {},
+    };
   }
 
   const raw = window.sessionStorage.getItem(STORAGE_KEY);
   if (!raw) {
-    return { mission: seededMission, files: creativeFilesFixture, handoffs: {}, deletionApprovals: {} };
+    return {
+      intentPassport: seededIntentPassport,
+      mission: seededMission,
+      files: creativeFilesFixture,
+      handoffs: {},
+      deletionApprovals: {},
+    };
   }
 
   try {
     const parsed = JSON.parse(raw) as MissionState;
     if (!parsed.mission || !parsed.files || !parsed.handoffs) {
-      return { mission: seededMission, files: creativeFilesFixture, handoffs: {}, deletionApprovals: {} };
+      return {
+        intentPassport: seededIntentPassport,
+        mission: seededMission,
+        files: creativeFilesFixture,
+        handoffs: {},
+        deletionApprovals: {},
+      };
     }
     if (!parsed.deletionApprovals) {
       return { ...parsed, deletionApprovals: {} };
@@ -73,9 +98,24 @@ function loadInitialState(): MissionState {
         },
       ]),
     );
-    return { ...parsed, deletionApprovals: normalizedApprovals };
+    const now = new Date().toISOString();
+    const intentPassport: IntentPassport = {
+      ...seededIntentPassport,
+      ...(parsed.intentPassport ?? {
+        userGoal: parsed.mission.goal,
+        handoffTrail: parsed.mission.handoffHistory,
+      }),
+      updatedAt: now,
+    };
+    return { ...parsed, intentPassport, deletionApprovals: normalizedApprovals };
   } catch {
-    return { mission: seededMission, files: creativeFilesFixture, handoffs: {}, deletionApprovals: {} };
+    return {
+      intentPassport: seededIntentPassport,
+      mission: seededMission,
+      files: creativeFilesFixture,
+      handoffs: {},
+      deletionApprovals: {},
+    };
   }
 }
 
@@ -96,6 +136,7 @@ export function MissionProvider({ children }: { children: ReactNode }) {
     const currentAsset = state.files.find((file) => file.id === state.mission.currentAssetId);
 
     return {
+      intentPassport: state.intentPassport,
       mission: state.mission,
       files: state.files,
       handoffs: state.handoffs,
@@ -148,9 +189,25 @@ export function MissionProvider({ children }: { children: ReactNode }) {
         }));
       },
       createAndStoreHandoff: (input) => {
-        const handoff = createHandoff({ mission: state.mission, ...input });
+        const handoff = createHandoff({
+          mission: state.mission,
+          intentPassportId: state.intentPassport.id,
+          userGoal: state.intentPassport.userGoal,
+          requirements: state.intentPassport.requirements,
+          discoveredCapabilities: state.intentPassport.discoveredCapabilities,
+          selectedWorkflowId: state.intentPassport.selectedWorkflowId,
+          selectedDestination: state.intentPassport.selectedDestination,
+          userConstraints: state.intentPassport.userConstraints,
+          ...input,
+        });
         persist((previous) => ({
           ...previous,
+          intentPassport: {
+            ...previous.intentPassport,
+            selectedDestination: handoff.selectedDestination ?? input.toSurface,
+            handoffTrail: [...previous.intentPassport.handoffTrail, handoff.handoffId],
+            updatedAt: new Date().toISOString(),
+          },
           mission: {
             ...previous.mission,
             currentStep: `Handoff to ${input.toSurface}`,
@@ -203,8 +260,27 @@ export function MissionProvider({ children }: { children: ReactNode }) {
       setMission: (mission) => {
         persist((previous) => ({ ...previous, mission }));
       },
+      updateIntentPassport: (updater) => {
+        persist((previous) => ({
+          ...previous,
+          intentPassport: {
+            ...updater(previous.intentPassport),
+            updatedAt: new Date().toISOString(),
+          },
+        }));
+      },
+      setIntentPassport: (next) => {
+        persist((previous) => ({
+          ...previous,
+          intentPassport: {
+            ...next,
+            updatedAt: new Date().toISOString(),
+          },
+        }));
+      },
       resetDemo: () => {
         persist(() => ({
+          intentPassport: seededIntentPassport,
           mission: seededMission,
           files: creativeFilesFixture,
           handoffs: {},

@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { MissionProvider } from "@/components/mission-provider";
 import { UniversalNav } from "@/components/universal-nav";
-import { creativeFilesFixture, seededMission } from "@/lib/fixtures";
+import { creativeFilesFixture, seededIntentPassport, seededMission } from "@/lib/fixtures";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -34,6 +34,7 @@ describe("reset demo behavior", () => {
 
     const runtime = getMissionRuntime();
     expect(runtime?.mission).toEqual(seededMission);
+    expect(runtime?.intentPassport).toEqual(seededIntentPassport);
     expect(runtime?.files).toEqual(creativeFilesFixture);
     expect(Object.keys(runtime?.handoffs ?? {})).toHaveLength(0);
     expect(Object.keys(runtime?.deletionApprovals ?? {})).toHaveLength(0);
@@ -74,6 +75,7 @@ describe("reset demo behavior", () => {
 
     const resetRuntime = getMissionRuntime();
     expect(resetRuntime?.mission).toEqual(seededMission);
+    expect(resetRuntime?.intentPassport).toEqual(seededIntentPassport);
     expect(resetRuntime?.files).toEqual(creativeFilesFixture);
     expect(Object.keys(resetRuntime?.handoffs ?? {})).toHaveLength(0);
     expect(Object.keys(resetRuntime?.deletionApprovals ?? {})).toHaveLength(0);
@@ -83,4 +85,3 @@ describe("reset demo behavior", () => {
     });
   });
 });
-

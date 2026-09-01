@@ -71,8 +71,9 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
             return toolError("WRONG_SURFACE", "This handoff is not targeting the Firefly surface.");
           }
 
-          const sourceAssetId = input?.assetId ?? activeHandoff.assetIds[0];
-          if (!activeHandoff.assetIds.includes(sourceAssetId)) {
+          const handoffAssetIds = activeHandoff.assetIds ?? [];
+          const sourceAssetId = input?.assetId ?? handoffAssetIds[0];
+          if (!sourceAssetId || !handoffAssetIds.includes(sourceAssetId)) {
             return toolError(
               "INVALID_HANDOFF_ASSET",
               `Asset ${sourceAssetId} is not part of handoff ${resolvedHandoffId}.`,
@@ -220,6 +221,18 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
           <p className="small-note" style={{ marginTop: "8px" }}>
             Using Firefly result
           </p>
+          <a
+            className="button-link"
+            href="https://firefly.adobe.com/"
+            target="_blank"
+            rel="noreferrer"
+            style={{ display: "inline-block", marginTop: "10px" }}
+          >
+            Continue in Adobe Firefly
+          </a>
+          <p className="small-note" style={{ marginTop: "8px" }}>
+            This route confirms handoff continuity for the demo; production creation happens on Adobe Firefly.
+          </p>
         </aside>
       </div>
 
@@ -233,10 +246,10 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
           <ToolRegistrationStatus available={localStatus.available} registeredTools={localStatus.registeredTools} />
           {handoff ? (
             <div className="code-block">
-              Source: {handoff.assetIds.join(", ")}
+              Asset IDs: {(handoff.assetIds ?? []).join(", ")}
               {"\n"}Task: {handoff.task}
               {"\n"}Goal: {handoff.userGoal}
-              {"\n"}Completed steps: {handoff.previousSteps.join(", ") || "None"}
+              {"\n"}Completed steps: {(handoff.previousSteps ?? []).join(", ") || "None"}
             </div>
           ) : null}
         </div>
