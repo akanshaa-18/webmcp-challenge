@@ -100,7 +100,7 @@ No local-only filesystem paths are required for runtime behavior.
    - click **Approve deletion** in UI
    - second call with confirmation ID succeeds
 
-Plans dataset label shown in UI: **Demo plan data for WebMCP prototype**.
+Plans disclosure shown in UI: **Pricing and plan information shown in this prototype uses public reference snapshot data.**
 
 Public catalog data source label used by the new intelligence tools: **public_reference_snapshot**.
 

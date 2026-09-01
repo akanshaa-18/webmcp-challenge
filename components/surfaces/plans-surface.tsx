@@ -127,19 +127,6 @@ export function PlansSurface() {
 
   return (
     <div className="plans-surface">
-      <header className="plans-topbar">
-        <div className="plans-brand">
-          <span className="plans-adobe-mark">Adobe</span>
-          <span className="plans-brand-divider">|</span>
-          <span>Creative Cloud</span>
-        </div>
-        <nav className="plans-top-links">
-          <span>Creativity & Design</span>
-          <span>PDF & E-signatures</span>
-          <span>Marketing & Commerce</span>
-        </nav>
-      </header>
-
       <section className="plans-hero">
         <p className="small-note">Plans and pricing</p>
         <h1 className="hero-title">Find the right Creative Cloud plan</h1>
@@ -148,11 +135,6 @@ export function PlansSurface() {
           <button className="plans-tab plans-tab-active" type="button">Students & Teachers</button>
           <button className="plans-tab" type="button">Individuals</button>
           <button className="plans-tab" type="button">Business</button>
-        </div>
-        <div className="badge-row">
-          <span className="status-badge"><strong>Meera</strong> · Student · Bangalore, India</span>
-          <span className="status-badge">Region: IN</span>
-          <span className="status-badge">Demo plan data for WebMCP prototype</span>
         </div>
       </section>
 
@@ -183,6 +165,10 @@ export function PlansSurface() {
         <h2 className="section-title">Recommendation output</h2>
         <div className="code-block">{lastToolOutput}</div>
       </section>
+
+      <p className="plans-disclosure small-note">
+        Pricing and plan information shown in this prototype uses public reference snapshot data.
+      </p>
 
       <details className="details-pane">
         <summary>Developer details</summary>
