@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IntentPassportCard } from "@/components/intent-passport-card";
 import { useMission } from "@/components/mission-provider";
 import { ToolRegistrationStatus } from "@/components/tool-registration-status";
+import { WorkflowProgress } from "@/components/workflow-progress";
 import { describeCapability } from "@/lib/capability-registry";
 import { plansFixture, userFixture } from "@/lib/fixtures";
 import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
@@ -255,17 +257,20 @@ export function FrontDoorSurface() {
             <p className="small-note">Compose a workflow to see capability reasoning and dependencies.</p>
           )}
         </article>
-
-        <article className="frontdoor-card">
-          <h2>Intent Passport</h2>
-          <div className="frontdoor-activity-list">
-            <p><strong>Goal</strong>: {passport.userGoal}</p>
-            <p><strong>Context</strong>: Student · India</p>
-            <p><strong>Requirements</strong>: {passport.requirements.join(", ") || "Not set"}</p>
-            <p><strong>Discovered</strong>: {passport.selectedProducts.join(", ") || "Not set"}</p>
-            <p><strong>Recommended</strong>: {passport.recommendedWorkflow ?? "Not composed"}</p>
-            <p><strong>Current</strong>: {currentStepDisplay}</p>
-          </div>
+        <div>
+          <IntentPassportCard passport={passport} currentLabel={currentStepDisplay} />
+          {workflowResult?.status === "ok" ? (
+            <div style={{ marginTop: 10 }}>
+              <WorkflowProgress
+                steps={workflowResult.data.steps.map((step) => ({
+                  id: step.capabilityId,
+                  label: step.productName,
+                  subtitle: step.capability,
+                }))}
+                currentStepId={workflowResult.data.steps[0]?.capabilityId}
+              />
+            </div>
+          ) : null}
           <h3 className="frontdoor-subheading">Activity</h3>
           <div className="frontdoor-activity-list">
             <p>✓ Goal understood</p>
@@ -273,7 +278,7 @@ export function FrontDoorSurface() {
             <p>{passport.discoveredCapabilities.includes("public.build_adobe_workflow") ? "✓" : "○"} Workflow composed</p>
             <p>{passport.selectedDestination ? "✓" : "○"} Start destination identified</p>
           </div>
-        </article>
+        </div>
       </section>
 
       <section className="frontdoor-grid">

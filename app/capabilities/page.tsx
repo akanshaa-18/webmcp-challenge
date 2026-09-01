@@ -1,4 +1,4 @@
-import { toolManifests } from "@/lib/capability-registry";
+import { runtimeToolNameForManifest, toolManifests } from "@/lib/capability-registry";
 
 export default function CapabilitiesPage() {
   return (
@@ -26,6 +26,7 @@ export default function CapabilitiesPage() {
         <thead>
           <tr>
             <th>Tool name</th>
+            <th>Runtime tool</th>
             <th>Owner surface</th>
             <th>Description</th>
             <th>Destination</th>
@@ -38,6 +39,7 @@ export default function CapabilitiesPage() {
             return (
               <tr key={manifest.toolName}>
                 <td>{manifest.toolName}</td>
+                <td>{runtimeToolNameForManifest(manifest.toolName)}</td>
                 <td>{manifest.ownerSurface}</td>
                 <td>{manifest.description}</td>
                 <td>{manifest.destinationRoute ?? manifest.destinationUrl ?? "n/a"}</td>

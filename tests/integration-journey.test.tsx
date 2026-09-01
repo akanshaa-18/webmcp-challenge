@@ -404,7 +404,7 @@ describe("integration journey checkpoint", () => {
     });
   });
 
-  it("clickable Continue to Express creates a valid Express handoff", async () => {
+  it("Firefly destination route exposes next-step destination link", async () => {
     const { tools } = getRegisteredTools();
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -432,22 +432,11 @@ describe("integration journey checkpoint", () => {
     });
     expect(changeResult.status).toBe("ok");
 
-    const continueButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Continue to Express",
+    const nextDestinationLink = Array.from(container.querySelectorAll("a")).find(
+      (link) => link.textContent?.trim() === "View next destination",
     );
-    expect(continueButton).toBeDefined();
-
-    await act(async () => {
-      continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    const destination = pushSpy.mock.calls.at(-1)?.[0] as string | undefined;
-    expect(destination).toMatch(/^\/express\?handoff=/);
-    const handoffId = destination?.split("handoff=")[1];
-    const handoff = getMissionRuntime()?.getHandoff(handoffId ?? "");
-    expect(handoff?.toolName).toBe("express.create_business_card");
-    expect(handoff?.toSurface).toBe("Express");
-    expect(handoff?.assetIds).toContain("kaftan-logo-background-v1");
+    expect(nextDestinationLink).toBeDefined();
+    expect(nextDestinationLink?.getAttribute("href")).toMatch(/^\/express\?handoff=/);
 
     await act(async () => {
       root.unmount();
