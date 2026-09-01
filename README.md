@@ -15,6 +15,12 @@ This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and **Adob
 - **Public intelligence catalog** (`lib/catalog/*`) is sourced as a **public reference snapshot** and powers global read-only product intelligence tools.
 - **Workflow composer** (`build_adobe_workflow`) composes deterministic multi-step Adobe workflows from structured catalog capabilities.
 
+### Capability naming convention (developer-facing)
+
+- Capability registry entries are namespaced IDs (examples: `public.find_product_for_task`, `public.build_adobe_workflow`).
+- Runtime WebMCP tools are registered by surface with unprefixed names (examples: `find_product_for_task`, `build_adobe_workflow`).
+- This mapping is intentional: registry IDs are for global discovery/catalog; runtime names are the executable tool names shown in WebMCP inspectors.
+
 ## Routes
 
 - `/cc-home`

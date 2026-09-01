@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { describeCapability, findToolsForTask, toolManifests } from "@/lib/capability-registry";
+import {
+  describeCapability,
+  findToolsForTask,
+  runtimeToolNameForManifest,
+  toolManifests,
+} from "@/lib/capability-registry";
 import { toolError } from "@/lib/errors";
 import { userFixture } from "@/lib/fixtures";
 import { getMissionRuntime } from "@/lib/mission-runtime";
@@ -78,7 +83,12 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
       execute: () => ({
         status: "ok",
         data: {
-          manifests: toolManifests,
+          manifests: toolManifests.map((manifest) => ({
+            ...manifest,
+            runtimeToolName: runtimeToolNameForManifest(manifest.toolName),
+          })),
+          namingConvention:
+            "Registry uses namespaced manifest IDs (for example public.build_adobe_workflow); WebMCP runtime tools are registered by route as unprefixed names (for example build_adobe_workflow).",
         },
       }),
     },
@@ -350,7 +360,13 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
               : [...passport.discoveredCapabilities, capability.toolName],
           }));
         }
-        return { status: "ok", data: capability };
+        return {
+          status: "ok",
+          data: {
+            ...capability,
+            runtimeToolName: runtimeToolNameForManifest(capability.toolName),
+          },
+        };
       },
     },
     {
@@ -471,6 +487,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
 export function capabilityRow(manifest: ToolManifest) {
   return {
     tool: manifest.toolName,
+    runtimeTool: runtimeToolNameForManifest(manifest.toolName),
     surface: manifest.ownerSurface,
     description: manifest.description,
     destination: manifest.destinationRoute ?? manifest.destinationUrl ?? "n/a",

@@ -294,6 +294,11 @@ export function describeCapability(toolName: string): ToolManifest | null {
   return toolManifests.find((tool) => tool.toolName === toolName) ?? null;
 }
 
+export function runtimeToolNameForManifest(toolName: string): string {
+  const segments = toolName.split(".");
+  return segments.length > 1 ? segments[segments.length - 1] : toolName;
+}
+
 export function findToolsForTask(task: string): {
   recommendedTool: ToolManifest | null;
   alternatives: ToolManifest[];
@@ -326,9 +331,26 @@ export function findToolsForTask(task: string): {
   }
 
   if (
+    normalizedTask.includes("what can firefly do") ||
+    normalizedTask.includes("what can photoshop do") ||
+    normalizedTask.includes("what can illustrator do") ||
+    normalizedTask.includes("what can premiere pro do") ||
+    normalizedTask.includes("what can premiere do")
+  ) {
+    const recommendedTool = describeCapability("public.get_product_capabilities");
+    return {
+      recommendedTool,
+      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.get_product_capabilities"),
+    };
+  }
+
+  if (
     normalizedTask.includes("will ") &&
     normalizedTask.includes(" run") &&
-    (normalizedTask.includes("macos") || normalizedTask.includes("windows"))
+    (normalizedTask.includes("macos") ||
+      normalizedTask.includes("macbook") ||
+      normalizedTask.includes("mac") ||
+      normalizedTask.includes("windows"))
   ) {
     const recommendedTool = describeCapability("public.check_device_compatibility");
     return {
