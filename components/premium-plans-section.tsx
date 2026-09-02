@@ -10,10 +10,7 @@ interface PriceState {
   status: "loading" | "ok" | "price_unavailable";
   formattedPrice?: string;
   currency?: string;
-  region?: string;
 }
-
-type CatalogMarket = "US" | "IN";
 
 export function PremiumPlansSection() {
   const missionStore = useMission();
@@ -22,41 +19,39 @@ export function PremiumPlansSection() {
   const [recommendedPlanPrice, setRecommendedPlanPrice] = useState<PriceState>({ status: "loading" });
   const [showExplanation, setShowExplanation] = useState(false);
   const [catalogPrices, setCatalogPrices] = useState<Record<string, PriceState>>({});
-  const [catalogMarket, setCatalogMarket] = useState<CatalogMarket>("US");
-  const [catalogLoadingRegion, setCatalogLoadingRegion] = useState<string | null>(null);
 
-  // Load default US catalog pricing on mount
+  // Load default US pricing on mount
   useEffect(() => {
-    const loadCatalogPricing = async () => {
-      const targetRegion = catalogMarket === "US" ? "United States" : "India";
-      setCatalogLoadingRegion(targetRegion);
-
+    const loadDefaultPricing = async () => {
       const prices: Record<string, PriceState> = {};
 
       for (const plan of plansFixture) {
-        const result = await getPlanPrice(plansFixture, { planId: plan.id, region: targetRegion });
+        prices[plan.id] = { status: "loading" };
+      }
+      setCatalogPrices(prices);
+
+      // Fetch live US pricing for all plans (US is backend default when no region supplied)
+      for (const plan of plansFixture) {
+        const result = await getPlanPrice(plansFixture, { planId: plan.id, region: "United States" });
 
         if (result.status === "ok") {
           prices[plan.id] = {
             status: "ok",
             formattedPrice: (result as any).data.formattedPrice,
             currency: (result as any).data.currency,
-            region: targetRegion,
           };
         } else {
           prices[plan.id] = {
             status: "price_unavailable",
-            region: targetRegion,
           };
         }
       }
 
-      setCatalogPrices(prices);
-      setCatalogLoadingRegion(null);
+      setCatalogPrices({ ...prices });
     };
 
-    loadCatalogPricing();
-  }, [catalogMarket]);
+    loadDefaultPricing();
+  }, []);
 
   // Use pricing from compare_plan_options result (already live pricing from WebMCP execution)
   useEffect(() => {
@@ -79,9 +74,6 @@ export function PremiumPlansSection() {
 
   // Only show personalized state when actual WebMCP tool execution has occurred
   const hasToolExecution = passport.comparePlanResult || recommendedPlanPrice.status === "ok";
-
-  // Determine which region pricing is displayed (agent personalization > catalog market)
-  const displayedRegion = hasToolExecution && passport.region ? passport.region : catalogPrices[plansFixture[0]?.id]?.region;
 
   return (
     <section id="plans" className="plans-section">
@@ -158,67 +150,43 @@ export function PremiumPlansSection() {
           </details>
         </>
       ) : (
-        <div>
-          {/* Catalog market selector */}
-          <div className="plans-catalog-market-selector">
-            <label htmlFor="market-select" className="plans-market-label">
-              Catalog pricing:
-            </label>
-            <select
-              id="market-select"
-              className="plans-market-dropdown"
-              value={catalogMarket}
-              onChange={(e) => setCatalogMarket(e.target.value as CatalogMarket)}
-              disabled={catalogLoadingRegion !== null}
-            >
-              <option value="US">United States</option>
-              <option value="IN">India</option>
-            </select>
-            <span className="plans-pricing-source">
-              ● Live pricing · {catalogMarket === "US" ? "United States" : "India"}
-            </span>
-          </div>
+        <div className="plans-catalog">
+          {plansFixture.map((plan) => {
+            const planIcons: Record<string, { src: string; alt: string }> = {
+              "photo_plus": { src: "/assets/adobe/photoshop-icon.svg", alt: "Photoshop" },
+              "illustrator_plus": { src: "/assets/adobe/illustrator-icon.svg", alt: "Illustrator" },
+              "creative_cloud": { src: "/assets/adobe/creative-community.jpg", alt: "Creative Cloud" },
+            };
+            const planIcon = planIcons[plan.id];
+            const priceState = catalogPrices[plan.id];
 
-          {/* Plans catalog */}
-          <div className="plans-catalog">
-            {plansFixture.map((plan) => {
-              const planIcons: Record<string, { src: string; alt: string }> = {
-                "photo_plus": { src: "/assets/adobe/photoshop-icon.svg", alt: "Photoshop" },
-                "illustrator_plus": { src: "/assets/adobe/illustrator-icon.svg", alt: "Illustrator" },
-                "creative_cloud": { src: "/assets/adobe/creative-community.jpg", alt: "Creative Cloud" },
-              };
-              const planIcon = planIcons[plan.id];
-              const priceState = catalogPrices[plan.id];
-              const isLoading = catalogLoadingRegion !== null;
-
-              return (
-                <div key={plan.id} className="plans-catalog-card" style={{ opacity: isLoading ? 0.6 : 1 }}>
-                  {planIcon && (
-                    <div className="plans-catalog-icon-wrapper">
-                      <Image
-                        src={planIcon.src}
-                        alt={planIcon.alt}
-                        width={48}
-                        height={48}
-                        className="plans-catalog-icon"
-                      />
-                    </div>
-                  )}
-                  <p className="plans-catalog-badge">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
-                  <h3 className="plans-catalog-name">{plan.name}</h3>
-                  <p className="plans-catalog-price">
-                    {isLoading ? "Loading…" : priceState?.status === "ok" ? priceState.formattedPrice : "Price unavailable"}
-                  </p>
-                  <p className="plans-catalog-period">/month</p>
-                  <ul className="plans-catalog-apps">
-                    {plan.includedApps.slice(0, 3).map((app) => (
-                      <li key={app}>{app}</li>
-                    ))}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
+            return (
+              <div key={plan.id} className="plans-catalog-card">
+                {planIcon && (
+                  <div className="plans-catalog-icon-wrapper">
+                    <Image
+                      src={planIcon.src}
+                      alt={planIcon.alt}
+                      width={48}
+                      height={48}
+                      className="plans-catalog-icon"
+                    />
+                  </div>
+                )}
+                <p className="plans-catalog-badge">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
+                <h3 className="plans-catalog-name">{plan.name}</h3>
+                <p className="plans-catalog-price">
+                  {priceState?.status === "loading" ? "Loading…" : priceState?.status === "ok" ? priceState.formattedPrice : "—"}
+                </p>
+                <p className="plans-catalog-period">/month</p>
+                <ul className="plans-catalog-apps">
+                  {plan.includedApps.slice(0, 3).map((app) => (
+                    <li key={app}>{app}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
       )}
 
