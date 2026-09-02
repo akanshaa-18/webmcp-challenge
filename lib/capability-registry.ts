@@ -54,47 +54,20 @@ export const toolManifests: ToolManifest[] = [
     audience: "public",
   },
   {
-    toolName: "public.get_product_system_requirements",
+    toolName: "public.check_os_compatibility",
     ownerSurface: "Global",
     description:
-      "Return platform-specific product system requirements from the public reference snapshot catalog.",
+      "Check whether a specific OS version meets Adobe's minimum requirements for a Creative Cloud desktop app. Supports macos and windows only.",
     inputSchema: {
       type: "object",
       properties: {
-        productId: { type: "string" },
-        platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
+        productId: { type: "string", description: "Catalog product ID, e.g. \"photoshop\", \"illustrator\", \"premiere-pro\"." },
+        platform: { type: "string", enum: ["macos", "windows"] },
+        osVersion: { type: "string", description: "User's OS version string, e.g. \"14.5\" or \"10.0.22621\"." },
       },
-      required: ["productId", "platform"],
+      required: ["productId", "platform", "osVersion"],
     },
-    requiredContext: ["productId", "platform"],
-    destinationUrl: "https://helpx.adobe.com/",
-    executionMode: "global-discovery",
-    readOnly: true,
-    audience: "public",
-  },
-  {
-    toolName: "public.check_device_compatibility",
-    ownerSurface: "Global",
-    description: "Check product compatibility against provided device context using snapshot requirements.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        productId: { type: "string" },
-        platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
-        device: {
-          type: "object",
-          properties: {
-            osVersion: { type: "string" },
-            memoryGB: { type: "number" },
-            freeStorageGB: { type: "number" },
-            processor: { type: "string" },
-            gpu: { type: "string" },
-          },
-        },
-      },
-      required: ["productId", "platform", "device"],
-    },
-    requiredContext: ["productId", "platform", "device"],
+    requiredContext: ["productId", "platform", "osVersion"],
     destinationUrl: "https://helpx.adobe.com/",
     executionMode: "global-discovery",
     readOnly: true,
@@ -345,30 +318,26 @@ export function findToolsForTask(task: string): {
   }
 
   if (
-    normalizedTask.includes("will ") &&
-    normalizedTask.includes(" run") &&
-    (normalizedTask.includes("macos") ||
-      normalizedTask.includes("macbook") ||
+    normalizedTask.includes("will ") && normalizedTask.includes(" run") ||
+    normalizedTask.includes("can be installed") ||
+    normalizedTask.includes("compatible with my") ||
+    normalizedTask.includes("can my") ||
+    normalizedTask.includes("system requirement") ||
+    normalizedTask.includes("os version") ||
+    normalizedTask.includes("os compatibility") ||
+    normalizedTask.includes("need to know if") ||
+    (normalizedTask.includes("install") && (
       normalizedTask.includes("mac") ||
-      normalizedTask.includes("windows"))
+      normalizedTask.includes("windows") ||
+      normalizedTask.includes("my machine") ||
+      normalizedTask.includes("my computer") ||
+      normalizedTask.includes("my pc")
+    ))
   ) {
-    const recommendedTool = describeCapability("public.check_device_compatibility");
+    const recommendedTool = describeCapability("public.check_os_compatibility");
     return {
       recommendedTool,
-      alternatives: [
-        ...toolManifests.filter((tool) => tool.toolName === "public.get_product_system_requirements"),
-        ...toolManifests.filter((tool) => tool.toolName !== "public.check_device_compatibility"),
-      ],
-    };
-  }
-
-  if (normalizedTask.includes("system requirement") || normalizedTask.includes("requirements")) {
-    const recommendedTool = describeCapability("public.get_product_system_requirements");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter(
-        (tool) => tool.toolName !== "public.get_product_system_requirements",
-      ),
+      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.check_os_compatibility"),
     };
   }
 

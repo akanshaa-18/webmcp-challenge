@@ -10,11 +10,10 @@ import { plansFixture, userFixture } from "@/lib/fixtures";
 import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
-  checkDeviceCompatibility,
   findProductForTask,
   getProductCapabilities,
-  getProductSystemRequirements,
 } from "@/lib/public-intelligence";
+import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
 import { comparePlanOptions } from "@/lib/plans";
 import { buildAdobeWorkflow } from "@/lib/workflow-composer";
 
@@ -23,7 +22,6 @@ type WorkflowState = ReturnType<typeof buildAdobeWorkflow>;
 const DEFAULT_GOAL =
   "I want to remove the background from a product image and turn it into an Instagram post.";
 const DEFAULT_DISCOVERY_PROMPT = "What Adobe app should I use to edit a video?";
-const DEFAULT_COMPATIBILITY_PROMPT = "Will Premiere Pro run on my Mac?";
 
 export function FrontDoorSurface() {
   const missionStore = useMission();
@@ -31,9 +29,15 @@ export function FrontDoorSurface() {
   const [goal, setGoal] = useState(DEFAULT_GOAL);
   const [workflowResult, setWorkflowResult] = useState<WorkflowState | null>(null);
   const [productPrompt, setProductPrompt] = useState(DEFAULT_DISCOVERY_PROMPT);
-  const compatibilityPrompt = DEFAULT_COMPATIBILITY_PROMPT;
-  const [deviceMemory, setDeviceMemory] = useState<string>("");
-  const [deviceStorage, setDeviceStorage] = useState<string>("");
+  const [compatProduct, setCompatProduct] = useState("photoshop");
+  const [compatPlatform, setCompatPlatform] = useState<"macos" | "windows">("macos");
+  const [compatOsVersion, setCompatOsVersion] = useState("");
+  const [compatResult, setCompatResult] = useState<{
+    status: "idle" | "loading" | "ok" | "error";
+    compatible?: boolean;
+    ranges?: string[];
+    message?: string;
+  }>({ status: "idle" });
   const [showWorkflowDetails, setShowWorkflowDetails] = useState(false);
   const [planSummaryState, setPlanSummaryState] = useState<{
     status: "loading" | "ok" | "unavailable";
@@ -115,31 +119,18 @@ export function FrontDoorSurface() {
     };
   })();
 
-  const compatibilitySummary = (() => {
-    const requirements = getProductSystemRequirements("premiere-pro", "macos");
-    const memory = Number(deviceMemory);
-    const storage = Number(deviceStorage);
-    const hasMemory = Number.isFinite(memory) && memory > 0;
-    const hasStorage = Number.isFinite(storage) && storage > 0;
-    const compatibility = checkDeviceCompatibility(
-      "premiere-pro",
-      "macos",
-      hasMemory || hasStorage
-        ? {
-            osVersion: "macOS (user provided)",
-            memoryGB: hasMemory ? memory : undefined,
-            freeStorageGB: hasStorage ? storage : undefined,
-          }
-        : undefined,
-    );
-
-    return {
-      prompt: compatibilityPrompt,
-      requirements,
-      compatibility,
-      hasDeviceDetails: hasMemory || hasStorage,
-    };
-  })();
+  const checkCompatibility = async () => {
+    if (!compatOsVersion.trim()) return;
+    setCompatResult({ status: "loading" });
+    try {
+      const sapCode = PRODUCT_TO_SAP[compatProduct];
+      const ranges = await fetchOsRanges(sapCode, compatPlatform);
+      const compatible = isCompatible(compatOsVersion.trim(), ranges);
+      setCompatResult({ status: "ok", compatible, ranges });
+    } catch (e) {
+      setCompatResult({ status: "error", message: e instanceof Error ? e.message : String(e) });
+    }
+  };
 
   const composeWorkflow = () => {
     const runtime = getMissionRuntime();
@@ -358,36 +349,47 @@ export function FrontDoorSurface() {
         </article>
 
         <article className="frontdoor-card">
-          <h2>Device compatibility</h2>
-          <p className="small-note">{compatibilitySummary.prompt}</p>
+          <h2>OS compatibility</h2>
+          <p className="small-note">Live data from Adobe FFC</p>
           <div className="frontdoor-inline-inputs">
             <label>
-              Memory (GB)
-              <input
-                type="number"
-                min={1}
-                value={deviceMemory}
-                onChange={(event) => setDeviceMemory(event.target.value)}
-              />
+              Product
+              <select value={compatProduct} onChange={(e) => { setCompatProduct(e.target.value); setCompatResult({ status: "idle" }); }}>
+                {Object.keys(PRODUCT_TO_SAP).map((id) => (
+                  <option key={id} value={id}>{id}</option>
+                ))}
+              </select>
             </label>
             <label>
-              Free storage (GB)
-              <input
-                type="number"
-                min={1}
-                value={deviceStorage}
-                onChange={(event) => setDeviceStorage(event.target.value)}
-              />
+              Platform
+              <select value={compatPlatform} onChange={(e) => { setCompatPlatform(e.target.value as "macos" | "windows"); setCompatResult({ status: "idle" }); }}>
+                <option value="macos">macOS</option>
+                <option value="windows">Windows</option>
+              </select>
             </label>
           </div>
-          {compatibilitySummary.requirements.status === "ok" ? (
-            <p className="small-note">Source: {compatibilitySummary.requirements.data.dataSource}</p>
+          <label>
+            OS version (e.g. 14.5 or 10.0.22631)
+            <input
+              type="text"
+              placeholder="e.g. 14.5"
+              value={compatOsVersion}
+              onChange={(e) => { setCompatOsVersion(e.target.value); setCompatResult({ status: "idle" }); }}
+            />
+          </label>
+          <button type="button" className="button-link" onClick={() => { void checkCompatibility(); }}>
+            Check compatibility
+          </button>
+          {compatResult.status === "loading" ? <p className="small-note">Checking…</p> : null}
+          {compatResult.status === "ok" ? (
+            <>
+              <p><strong>Result:</strong> {compatResult.compatible ? "✓ Compatible" : "✗ Not compatible"}</p>
+              <p className="small-note">Supported ranges: {compatResult.ranges?.join(", ") || "none"}</p>
+            </>
           ) : null}
-          {compatibilitySummary.compatibility.status === "ok" ? (
-            <p><strong>Result:</strong> {String(compatibilitySummary.compatibility.data.compatibility)}</p>
-          ) : (
-            <p className="small-note">More device information needed.</p>
-          )}
+          {compatResult.status === "error" ? (
+            <p className="status-error">{compatResult.message}</p>
+          ) : null}
         </article>
 
         <article className="frontdoor-card">

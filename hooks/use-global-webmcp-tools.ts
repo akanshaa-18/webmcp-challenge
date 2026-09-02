@@ -12,12 +12,11 @@ import { toolError } from "@/lib/errors";
 import { userFixture } from "@/lib/fixtures";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
-  checkDeviceCompatibility,
   findProductForTask,
   getProductCapabilities,
-  getProductSystemRequirements,
 } from "@/lib/public-intelligence";
 import { buildAdobeWorkflow } from "@/lib/workflow-composer";
+import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
 import { useWebMcpTools } from "@/hooks/use-webmcp-tools";
 import { Surface, ToolManifest } from "@/lib/types";
 
@@ -242,99 +241,6 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
       },
     },
     {
-      name: "get_product_system_requirements",
-      description:
-        "Return platform-specific product requirements from the public reference snapshot catalog.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          productId: { type: "string" },
-          platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
-        },
-        required: ["productId", "platform"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: { productId?: string; platform?: string }) => {
-        const result = getProductSystemRequirements(input?.productId, input?.platform);
-        if (result.status !== "ok") {
-          return result;
-        }
-
-        const runtime = getMissionRuntime();
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            discoveredCapabilities: passport.discoveredCapabilities.includes(
-              "public.get_product_system_requirements",
-            )
-              ? passport.discoveredCapabilities
-              : [...passport.discoveredCapabilities, "public.get_product_system_requirements"],
-            selectedProducts: input?.productId && !passport.selectedProducts.includes(input.productId)
-              ? [...passport.selectedProducts, input.productId]
-              : passport.selectedProducts,
-          }));
-        }
-
-        return result;
-      },
-    },
-    {
-      name: "check_device_compatibility",
-      description: "Check device compatibility against snapshot requirements for one Adobe product.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          productId: { type: "string" },
-          platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
-          device: {
-            type: "object",
-            properties: {
-              osVersion: { type: "string" },
-              memoryGB: { type: "number" },
-              freeStorageGB: { type: "number" },
-              processor: { type: "string" },
-              gpu: { type: "string" },
-            },
-          },
-        },
-        required: ["productId", "platform", "device"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: {
-        productId?: string;
-        platform?: string;
-        device?: {
-          osVersion?: string;
-          memoryGB?: number;
-          freeStorageGB?: number;
-          processor?: string;
-          gpu?: string;
-        };
-      }) => {
-        const result = checkDeviceCompatibility(input?.productId, input?.platform, input?.device);
-        if (result.status !== "ok") {
-          return result;
-        }
-
-        const runtime = getMissionRuntime();
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            discoveredCapabilities: passport.discoveredCapabilities.includes(
-              "public.check_device_compatibility",
-            )
-              ? passport.discoveredCapabilities
-              : [...passport.discoveredCapabilities, "public.check_device_compatibility"],
-            selectedProducts: input?.productId && !passport.selectedProducts.includes(input.productId)
-              ? [...passport.selectedProducts, input.productId]
-              : passport.selectedProducts,
-          }));
-        }
-
-        return result;
-      },
-    },
-    {
       name: "describe_capability",
       description: "Describe one capability from the global Adobe registry by tool name.",
       inputSchema: {
@@ -458,6 +364,52 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             handoff,
           },
         };
+      },
+    },
+    {
+      name: "check_os_compatibility",
+      description:
+        "Check whether a specific OS version meets Adobe's minimum requirements for a Creative Cloud desktop app. " +
+        "Supports macos and windows only — mobile platforms (ios, android) are not supported because Adobe does not " +
+        "publish minimum OS version ranges for mobile apps. If the user asks about mobile compatibility, " +
+        "inform them this check is unavailable and suggest checking the Adobe app's App Store or Google Play listing. " +
+        "Pass productId (e.g. \"photoshop\"), platform (\"macos\" or \"windows\"), " +
+        "and the user's osVersion (e.g. \"14.5\"). Returns compatible: true/false and the supported OS ranges.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          productId: { type: "string", description: "Catalog product ID, e.g. \"photoshop\", \"illustrator\", \"premiere-pro\"." },
+          platform: { type: "string", enum: ["macos", "windows"] },
+          osVersion: { type: "string", description: "User's OS version string, e.g. \"14.5\" or \"10.0.22621\"." },
+        },
+        required: ["productId", "platform", "osVersion"],
+      },
+      annotations: { readOnlyHint: true },
+      execute: async (input: { productId?: string; platform?: string; osVersion?: string }) => {
+        const { productId, platform, osVersion } = input ?? {};
+        if (!productId || !platform || !osVersion) {
+          return toolError("MISSING_REQUIRED_CONTEXT", "productId, platform, and osVersion are all required.");
+        }
+        if (platform !== "macos" && platform !== "windows") {
+          return toolError("UNSUPPORTED_PLATFORM", "platform must be \"macos\" or \"windows\".");
+        }
+        const sapCode = PRODUCT_TO_SAP[productId];
+        if (!sapCode) {
+          return toolError(
+            "UNKNOWN_PRODUCT",
+            `Unknown productId: "${productId}". Known products: ${Object.keys(PRODUCT_TO_SAP).join(", ")}.`,
+          );
+        }
+        try {
+          const ranges = await fetchOsRanges(sapCode, platform);
+          const compatible = isCompatible(osVersion, ranges);
+          return {
+            status: "ok",
+            data: { productId, sapCode, platform, osVersion, compatible, supportedRanges: ranges },
+          };
+        } catch (e) {
+          return toolError("FFC_ERROR", e instanceof Error ? e.message : String(e));
+        }
       },
     },
     {
