@@ -157,6 +157,15 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         }
 
         if (runtime) {
+          const workflowSteps = result.data.steps.map((step: any) => ({
+            productName: step.productName,
+            initials: step.productInitials || step.productName.substring(0, 2).toUpperCase(),
+            color: step.productColor || "#001AFF",
+            task: step.capability,
+            produces: step.produces || "Output",
+            destinationUrl: step.destinationUrl,
+          }));
+
           runtime.updateIntentPassport((passport) => ({
             ...passport,
             userGoal: input?.task ?? passport.userGoal,
@@ -173,6 +182,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             selectedWorkflowStep: result.data.steps[0]?.capabilityId,
             recommendedWorkflow: result.data.steps.map((step) => step.productName).join(" → "),
             selectedDestination: result.data.recommendedStart.destinationUrl,
+            actualWorkflowSteps: workflowSteps,
           }));
         }
 
@@ -564,6 +574,8 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
           runtime.updateIntentPassport((passport) => ({
             ...passport,
             selectedDestination: checkoutUrl,
+            checkoutUrl: checkoutUrl,
+            checkoutAction: input.action as "buy" | "trial",
             discoveredCapabilities: passport.discoveredCapabilities.includes("adobe_plans.checkout")
               ? passport.discoveredCapabilities
               : [...passport.discoveredCapabilities, "adobe_plans.checkout"],

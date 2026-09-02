@@ -12,7 +12,7 @@ export function AgentActivityDrawer() {
     return null;
   }
 
-  // Only show truly verified events, not inferred state
+  // Track actual successful tool execution
   const activities = [
     {
       status: passport.userGoal ? "✓" : "◯",
@@ -20,9 +20,9 @@ export function AgentActivityDrawer() {
       detail: passport.userGoal ? "(goal set)" : null,
     },
     {
-      status: passport.discoveredCapabilities.length > 0 ? "✓" : "◯",
-      text: "Products identified",
-      detail: passport.discoveredCapabilities.length > 0 ? `(${passport.discoveredCapabilities.length} capabilities)` : null,
+      status: passport.comparePlanResult ? "✓" : "◯",
+      text: "Plan recommendation updated",
+      detail: passport.comparePlanResult ? `(${passport.comparePlanResult.name})` : null,
     },
     {
       status: passport.region ? "✓" : "◯",
@@ -30,14 +30,14 @@ export function AgentActivityDrawer() {
       detail: passport.region ? `(${passport.region})` : null,
     },
     {
-      status: passport.selectedWorkflowId ? "✓" : "◯",
+      status: passport.actualWorkflowSteps && passport.actualWorkflowSteps.length > 0 ? "✓" : "◯",
       text: "Workflow composed",
-      detail: passport.recommendedWorkflow ? `(${passport.recommendedWorkflow})` : null,
+      detail: passport.actualWorkflowSteps ? `(${passport.actualWorkflowSteps.length} steps)` : null,
     },
     {
-      status: passport.selectedDestination ? "✓" : "◯",
-      text: "Checkout ready",
-      detail: passport.selectedDestination ? "(link prepared)" : null,
+      status: passport.checkoutUrl ? "✓" : "◯",
+      text: "Checkout prepared",
+      detail: passport.checkoutUrl ? `(${passport.checkoutAction || "action"})` : null,
     },
   ];
 

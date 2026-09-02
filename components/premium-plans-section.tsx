@@ -53,30 +53,19 @@ export function PremiumPlansSection() {
     loadCatalogPrices();
   }, []);
 
-  // Load recommended plan if we have agent-provided context
+  // Load recommended plan if we have actual compare_plan_options result from agent
   useEffect(() => {
-    const loadRecommendation = async () => {
-      if (!passport.region && !passport.audience) {
-        return;
-      }
+    if (passport.comparePlanResult) {
+      setRecommendedPlan(passport.comparePlanResult);
 
-      const sessionContext = readSessionContext();
-      const result = await comparePlanOptions(
-        plansFixture,
-        {
-          requirements: passport.requirements || ["photo editing", "creative design"],
-          region: passport.region,
-          audience: passport.audience,
-        },
-        sessionContext,
-      );
-
-      if (result.status === "ok" && result.data.recommendedPlan) {
-        setRecommendedPlan(result.data.recommendedPlan);
+      const loadPrice = async () => {
+        const sessionContext = readSessionContext();
+        const planId = passport.comparePlanResult?.planId;
+        if (!planId || !passport.region) return;
 
         const priceResult = await getPlanPrice(
           plansFixture,
-          { planId: result.data.recommendedPlan.planId, region: passport.region },
+          { planId, region: passport.region },
           sessionContext,
         );
 
@@ -89,11 +78,11 @@ export function PremiumPlansSection() {
         } else {
           setRecommendedPlanPrice({ status: "price_unavailable" });
         }
-      }
-    };
+      };
 
-    loadRecommendation();
-  }, [passport.region, passport.audience, passport.requirements]);
+      loadPrice();
+    }
+  }, [passport.comparePlanResult]);
 
   const hasContext = passport.region || passport.audience;
 
@@ -127,9 +116,9 @@ export function PremiumPlansSection() {
                     <div className="plans-rec-source-dot"></div>
                     Live Adobe pricing
                   </div>
-                  <button className="plans-rec-cta">
+                  <a href={passport.checkoutUrl || "#"} target="_blank" rel="noopener noreferrer" className="plans-rec-cta">
                     Continue with Adobe →
-                  </button>
+                  </a>
                 </>
               ) : (
                 <>

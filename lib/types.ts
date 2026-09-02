@@ -84,6 +84,11 @@ export interface IntentPassport {
   userConstraints?: string[];
   createdAt: string;
   updatedAt: string;
+  // Actual tool results for premium UI
+  comparePlanResult?: any;
+  actualWorkflowSteps?: { productName: string; initials: string; color: string; task: string; receives?: string; produces: string; destinationUrl?: string }[];
+  checkoutUrl?: string;
+  checkoutAction?: "buy" | "trial";
 }
 
 export interface HandoffContext {
