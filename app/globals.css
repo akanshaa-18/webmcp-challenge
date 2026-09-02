@@ -135,36 +135,34 @@ a {
   position: relative;
   overflow: hidden;
   display: grid;
-  gap: 40px;
+  grid-template-columns: 1fr 45%;
+  gap: 60px;
+  align-items: center;
   min-height: 500px;
 }
 
-.hero-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 0;
+.hero-main {
+  display: grid;
+  gap: 40px;
+  z-index: 2;
+  position: relative;
 }
 
-.hero-background img {
+.hero-artwork {
+  position: relative;
+  height: 100%;
+  min-height: 450px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+.hero-artwork img {
   object-fit: cover;
-  opacity: 0.35;
-}
-
-.hero-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(250, 249, 247, 0.85) 0%, rgba(245, 243, 240, 0.85) 50%, rgba(239, 248, 255, 0.85) 100%);
-  z-index: 1;
 }
 
 .hero-content {
-  text-align: center;
+  text-align: left;
   position: relative;
   z-index: 2;
 }
@@ -176,29 +174,24 @@ a {
   color: var(--adobe-black);
   margin: 0 0 16px;
   font-weight: 700;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 600px;
 }
 
 .adobe-hero-subheading {
   font-size: clamp(1rem, 2vw, 1.2rem);
   color: var(--adobe-neutral-mid);
   margin: 0;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 550px;
   line-height: 1.5;
 }
 
 .hero-product-icons {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 24px;
-  max-width: 600px;
-  margin: 0 auto;
+  display: flex;
+  gap: 16px;
   position: relative;
   z-index: 2;
+  flex-wrap: wrap;
+  max-width: 400px;
 }
 
 .hero-icon-container {
@@ -229,7 +222,7 @@ a {
 
 /* Product Carousel */
 .product-carousel-container {
-  margin: clamp(40px, 8vw, 80px) auto;
+  margin: clamp(80px, 12vw, 120px) auto;
   padding: 0 clamp(16px, 3vw, 48px);
   max-width: 1440px;
 }
@@ -364,7 +357,7 @@ a {
 
 /* Capability Bento Grid */
 .capabilities-container {
-  margin: clamp(60px, 10vw, 120px) auto;
+  margin: clamp(80px, 12vw, 120px) auto;
   padding: 0 clamp(16px, 3vw, 48px);
   max-width: 1440px;
 }
@@ -372,7 +365,7 @@ a {
 .capabilities-heading {
   font-size: clamp(1.3rem, 3vw, 1.8rem);
   font-weight: 700;
-  margin: 0 0 32px;
+  margin: 0 0 40px;
   color: var(--adobe-black);
   letter-spacing: -0.03em;
 }
@@ -380,7 +373,7 @@ a {
 .capabilities-bento {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  gap: 24px;
 }
 
 .capability-card {
@@ -1701,12 +1694,28 @@ a {
   }
 
   .adobe-hero {
+    grid-template-columns: 1fr;
     padding: clamp(40px, 6vw, 60px) clamp(12px, 3vw, 24px);
     gap: 32px;
   }
 
+  .hero-artwork {
+    min-height: 300px;
+  }
+
   .adobe-hero-headline {
     font-size: clamp(1.8rem, 4.5vw, 2.5rem);
+    text-align: center;
+  }
+
+  .adobe-hero-subheading {
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .hero-product-icons {
+    justify-content: center;
+    max-width: 100%;
   }
 
   .hero-visual-marks {

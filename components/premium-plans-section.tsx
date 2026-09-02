@@ -29,29 +29,14 @@ export function PremiumPlansSection() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [catalogPrices, setCatalogPrices] = useState<Record<string, PriceState>>({});
 
-  // Load catalog prices (initial state - no personalization)
+  // Catalog prices remain unavailable until legitimate context exists
+  // They are only loaded after compare_plan_options or explicit agent context
   useEffect(() => {
-    const loadCatalogPrices = async () => {
-      const prices: Record<string, PriceState> = {};
-      for (const plan of plansFixture) {
-        const result = await getPlanPrice(
-          plansFixture,
-          { planId: plan.id, region: plan.supportedRegions[0] },
-          readSessionContext(),
-        );
-        if (result.status === "ok") {
-          prices[plan.id] = {
-            status: "ok",
-            formattedPrice: result.data.formattedPrice,
-            currency: result.data.currency,
-          };
-        } else {
-          prices[plan.id] = { status: "price_unavailable" };
-        }
-      }
-      setCatalogPrices(prices);
-    };
-    loadCatalogPrices();
+    const prices: Record<string, PriceState> = {};
+    for (const plan of plansFixture) {
+      prices[plan.id] = { status: "price_unavailable" };
+    }
+    setCatalogPrices(prices);
   }, []);
 
   // Load recommended plan if we have actual compare_plan_options result from agent
@@ -85,18 +70,19 @@ export function PremiumPlansSection() {
     }
   }, [passport.comparePlanResult]);
 
-  const hasContext = passport.region || passport.audience;
+  // Only show personalized state when actual WebMCP tool execution has occurred
+  const hasToolExecution = passport.comparePlanResult || recommendedPlanPrice.status === "ok";
 
   return (
     <section id="plans" className="plans-section">
       <h2 className="plans-section-heading">Plans & Pricing</h2>
       <p className="plans-section-subtext">
-        {!hasContext
-          ? "Current regional pricing appears when your assistant knows your market."
-          : "Your recommendation based on context provided to your assistant."}
+        {!hasToolExecution
+          ? "Ask your assistant for a plan recommendation to see live regional pricing."
+          : "Your personalized recommendation based on creative needs and location."}
       </p>
 
-      {hasContext && recommendedPlan ? (
+      {hasToolExecution && recommendedPlan ? (
         <>
           <div className="plans-recommendation">
             <div className="plans-rec-info">
@@ -118,7 +104,7 @@ export function PremiumPlansSection() {
                     Live Adobe pricing
                   </div>
                   <a href={passport.checkoutUrl || "#"} target="_blank" rel="noopener noreferrer" className="plans-rec-cta">
-                    Continue with Adobe →
+                    Continue to checkout →
                   </a>
                 </>
               ) : (
@@ -203,9 +189,9 @@ export function PremiumPlansSection() {
       )}
 
       <p style={{ fontSize: "0.8rem", color: "var(--adobe-neutral-mid)", marginTop: 16, textAlign: "center" }}>
-        {hasContext && recommendedPlan
-          ? "Recommendation based on your creative needs and region. Pricing resolved from live regional Adobe commerce."
-          : "Plan information and reference pricing. Ask your assistant about your market and needs for a personalized recommendation."}
+        {hasToolExecution && recommendedPlan
+          ? "Personalized plan based on your creative needs. Live pricing from Adobe commerce."
+          : "Plan options. Ask your assistant about your creative goals and location for a personalized recommendation."}
       </p>
     </section>
   );

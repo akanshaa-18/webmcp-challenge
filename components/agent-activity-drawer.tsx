@@ -12,7 +12,7 @@ export function AgentActivityDrawer() {
     return null;
   }
 
-  // Track actual successful tool execution
+  // Track actual successful tool execution only
   const activities = [
     {
       status: passport.userGoal ? "✓" : "◯",
@@ -25,14 +25,14 @@ export function AgentActivityDrawer() {
       detail: passport.comparePlanResult ? `(${passport.comparePlanResult.name})` : null,
     },
     {
-      status: passport.region ? "✓" : "◯",
+      status: passport.regionFromTool ? "✓" : "◯",
       text: "Market context set",
-      detail: passport.region ? `(${passport.region})` : null,
+      detail: passport.region && passport.regionFromTool ? `(${passport.region})` : null,
     },
     {
-      status: passport.actualWorkflowSteps && passport.actualWorkflowSteps.length > 0 ? "✓" : "◯",
+      status: passport.workflowFromTool && passport.actualWorkflowSteps && passport.actualWorkflowSteps.length > 0 ? "✓" : "◯",
       text: "Workflow composed",
-      detail: passport.actualWorkflowSteps ? `(${passport.actualWorkflowSteps.length} steps)` : null,
+      detail: passport.actualWorkflowSteps && passport.workflowFromTool ? `(${passport.actualWorkflowSteps.length} steps)` : null,
     },
     {
       status: passport.checkoutUrl ? "✓" : "◯",

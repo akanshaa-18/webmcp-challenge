@@ -28,10 +28,12 @@ export function PremiumSurface() {
       <PremiumPlansSection />
 
       {/* Developer details drawer */}
-      <div style={{ padding: "0 clamp(16px, 3vw, 48px)", maxWidth: "1440px", margin: "40px auto 0" }}>
-        <details className="details-pane">
-          <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: "0.9rem" }}>Developer Details</summary>
-          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+      <div style={{ padding: "0 clamp(16px, 3vw, 48px)", maxWidth: "1440px", margin: "60px auto 0", borderTop: "1px solid var(--adobe-border)" }}>
+        <details className="details-pane" style={{ paddingTop: "32px" }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.85rem", color: "var(--adobe-neutral-mid)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            ⚙️ WebMCP Tool Registration
+          </summary>
+          <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
             <ToolRegistrationStatus available={globalStatus.available} registeredTools={globalStatus.registeredTools} />
             <ToolRegistrationStatus available={planStatus.available} registeredTools={planStatus.registeredTools} />
           </div>

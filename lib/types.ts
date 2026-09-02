@@ -89,6 +89,9 @@ export interface IntentPassport {
   actualWorkflowSteps?: { productName: string; initials: string; color: string; task: string; receives?: string; produces: string; destinationUrl?: string }[];
   checkoutUrl?: string;
   checkoutAction?: "buy" | "trial";
+  // Track when context is set by actual tool execution (not seeded)
+  regionFromTool?: boolean;
+  workflowFromTool?: boolean;
 }
 
 export interface HandoffContext {

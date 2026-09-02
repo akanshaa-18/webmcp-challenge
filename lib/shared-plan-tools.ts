@@ -92,7 +92,7 @@ export function createPlanActionTools() {
         const result = await getPlanPrice(plansFixture, { planId: input.planId, region: input.region }, sessionContext);
         if (input?.region) {
           const runtime = getMissionRuntime();
-          runtime?.updateIntentPassport((passport) => ({ ...passport, region: input.region }));
+          runtime?.updateIntentPassport((passport) => ({ ...passport, region: input.region, regionFromTool: true }));
         }
         return result;
       },
@@ -145,7 +145,7 @@ export function createPlanActionTools() {
           const runtime = getMissionRuntime();
           runtime?.updateIntentPassport((passport) => ({
             ...passport,
-            ...(input?.region ? { region: input.region } : {}),
+            ...(input?.region ? { region: input.region, regionFromTool: true } : {}),
             ...(result.data.audience && (input?.audience !== undefined || input?.student !== undefined)
               ? { audience: result.data.audience }
               : {}),

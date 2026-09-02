@@ -88,7 +88,7 @@ const FEATURED_PRODUCTS: Product[] = [
 export function ProductCarousel() {
   return (
     <section id="products" className="product-carousel-container">
-      <h2 className="product-carousel-heading">Adobe Product Family</h2>
+      <h2 className="product-carousel-heading">Creative Products</h2>
       <div className="product-carousel">
         {FEATURED_PRODUCTS.map((product) => (
           <article key={product.id} className="product-card">

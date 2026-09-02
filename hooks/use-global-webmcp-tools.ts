@@ -183,6 +183,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             recommendedWorkflow: result.data.steps.map((step) => step.productName).join(" → "),
             selectedDestination: result.data.recommendedStart.destinationUrl,
             actualWorkflowSteps: workflowSteps,
+            workflowFromTool: true,
           }));
         }
 

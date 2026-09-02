@@ -37,7 +37,7 @@ const CAPABILITY_GROUPS: Capability[] = [
     title: "Vector & Layout",
     products: [
       { name: "Illustrator", initials: "Ai", color: "#FF9B00", icon: "/assets/adobe/illustrator-icon.svg" },
-      { name: "Express", initials: "Ex", color: "#FF0099", icon: "/assets/adobe/express-icon.svg" },
+      { name: "Adobe Express", initials: "Ex", color: "#FF0099", icon: "/assets/adobe/express-icon.svg" },
     ],
   },
   {

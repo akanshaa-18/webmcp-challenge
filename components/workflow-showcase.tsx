@@ -85,7 +85,7 @@ export function WorkflowShowcase() {
         <div className="workflow-background-overlay"></div>
       </div>
       <h2 className="workflow-heading">
-        {passport.actualWorkflowSteps ? "Your Composed Workflow" : "Cross-Product Workflow"}
+        {passport.workflowFromTool ? "Your Creative Workflow" : "Workflow Example"}
       </h2>
       <div className="workflow-visualization">
         <div className="workflow-inner">
