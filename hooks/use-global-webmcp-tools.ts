@@ -27,6 +27,21 @@ function getResumeDestination(projectId: string): string {
   return "/project/kaftan";
 }
 
+const PLAN_CHECKOUT_OSIS: Record<string, { buy?: string; trial?: string }> = {
+  "adobe-student-cc-in": {
+    buy: "951DCCB08194F40B9C79951675547DF5",
+    trial: "7FD7DFC9269A4AFB9BF24B8C53547DA7",
+  },
+  "adobe-all-apps-in": {
+    buy: "632B3ADD940A7FBB7864AA5AD19B8D28",
+    trial: "65BA7CA7573834AC4D043B0E7CBD2349",
+  },
+  "adobe-photography-in": {
+    buy: "7D31EB7B815967837F7882380437117D",
+    trial: "C898A1A80AEB0D353C556FE5FCC72021",
+  },
+};
+
 export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: string) {
   const router = useRouter();
   const [tools] = useState(() => [
@@ -410,6 +425,12 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         }
         const useExternalPublicDestination =
           currentSurface === "Adobe Agentic Front Door" && Boolean(capability.destinationUrl);
+        if (useExternalPublicDestination && capability.audience !== "public") {
+          return toolError(
+            "UNKNOWN_CAPABILITY",
+            `Cannot hand off private tool ${input.toolName} to external public destination.`,
+          );
+        }
         if (!capability.destinationRoute && !useExternalPublicDestination) {
           return toolError(
             "UNSUPPORTED_DESTINATION",
@@ -443,7 +464,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
           status: "ok",
           data: {
             handoffId: handoff.handoffId,
-            destinationRoute: capability.destinationRoute,
+            destinationRoute: selectedDestination,
             handoff,
           },
         };
@@ -452,7 +473,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
     {
       name: "resume_workflow",
       description: "Resume the current mission by returning mission, current step, and handoff trail.",
-      annotations: { readOnlyHint: true },
+      annotations: { readOnlyHint: false },
       execute: () => {
         const runtime = getMissionRuntime();
         if (!runtime) {
@@ -520,43 +541,24 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
           );
         }
 
-        const { resolvePlanPrice, extractPlanOsi } = await import("@/lib/regional-pricing");
-        const priceResult = await resolvePlanPrice({
-          planId: input.planId,
-          country: resolvedRegion,
-        });
-
-        if (priceResult.status !== "ok") {
+        const osiEntry = PLAN_CHECKOUT_OSIS[input.planId];
+        if (!osiEntry) {
           return toolError(
-            "PLAN_NOT_AVAILABLE",
-            `Plan ${input.planId} is not available in ${resolvedRegion}. Reason: ${priceResult.data.reason}`,
+            "UNKNOWN_PLAN",
+            `No checkout link found for plan ${input.planId}. Use a plan ID from compare_plan_options.`,
           );
         }
 
-        if (input.action === "trial") {
-          return {
-            status: "ok",
-            data: {
-              planId: input.planId,
-              action: input.action,
-              region: resolvedRegion,
-              trialAvailable: null,
-              message: "Trial availability not verified from discovery data. User should contact Adobe sales or visit product page.",
-            },
-          };
-        }
-
-        const osiResult = await extractPlanOsi(input.planId, resolvedRegion);
-        if (osiResult.status !== "ok") {
+        const osi = osiEntry[input.action];
+        if (!osi) {
           return toolError(
-            "OSI_EXTRACTION_FAILED",
-            `Could not extract checkout identifier for ${input.planId}: ${osiResult.reason}`,
+            "ACTION_NOT_AVAILABLE",
+            `${input.action === "trial" ? "Trial" : "Purchase"} is not available for plan ${input.planId}.`,
           );
         }
 
         const countryParam = resolvedRegion.toUpperCase();
-        const langParam = { IN: "en", US: "en", GB: "en" }[countryParam] || "en";
-        const checkoutUrl = `https://commerce.adobe.com/store/commitment?items[0][id]=${osiResult.osi}&cli=adobe_com&ctx=fp&co=${countryParam}&lang=${langParam}`;
+        const checkoutUrl = `https://commerce.adobe.com/store/commitment?items[0][id]=${osi}&cli=adobe_com&ctx=fp&co=${countryParam}&lang=en`;
 
         if (runtime) {
           runtime.updateIntentPassport((passport) => ({
@@ -575,8 +577,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             action: input.action,
             region: resolvedRegion,
             checkoutUrl,
-            currency: priceResult.data.currency,
-            osi: osiResult.osi,
+            osi,
           },
         };
       },
