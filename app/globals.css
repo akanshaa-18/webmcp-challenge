@@ -133,10 +133,10 @@ a {
   padding: clamp(60px, 10vw, 120px) clamp(16px, 3vw, 48px);
   border-bottom: 1px solid var(--adobe-border);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   display: grid;
-  grid-template-columns: 1fr 45%;
-  gap: 60px;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
   align-items: center;
   min-height: 500px;
 }
@@ -148,17 +148,116 @@ a {
   position: relative;
 }
 
-.hero-artwork {
+.hero-ecosystem {
   position: relative;
-  height: 100%;
-  min-height: 450px;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+  height: 400px;
+  width: 100%;
+  max-width: 450px;
+  margin: 0 auto;
 }
 
-.hero-artwork img {
-  object-fit: cover;
+.creative-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 160px;
+  background: linear-gradient(135deg, #f5f3f0 0%, #f9f7f5 100%);
+  border: 2px solid var(--adobe-border);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  z-index: 1;
+}
+
+.canvas-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(45deg, transparent 40%, #FF4B4B 40%, #FF4B4B 60%, transparent 60%),
+              linear-gradient(-45deg, transparent 40%, #001AFF 40%, #001AFF 60%, transparent 60%);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+}
+
+.canvas-accent {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  top: 10%;
+  left: 10%;
+  border: 1px solid rgba(235, 16, 0, 0.2);
+  border-radius: 12px;
+}
+
+/* Floating product nodes around central canvas */
+.product-node {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--adobe-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+}
+
+.product-node:hover {
+  transform: scale(1.15) translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.product-node img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* Position nodes in orbit around canvas */
+.product-node-ff {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.product-node-ps {
+  top: 85px;
+  right: -20px;
+}
+
+.product-node-ai {
+  bottom: 85px;
+  right: -20px;
+}
+
+.product-node-ex {
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.product-node-pr {
+  bottom: 85px;
+  left: -20px;
+}
+
+.ecosystem-connections {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 
 .hero-content {
@@ -1705,11 +1804,27 @@ a {
   .adobe-hero {
     grid-template-columns: 1fr;
     padding: clamp(40px, 6vw, 60px) clamp(12px, 3vw, 24px);
-    gap: 32px;
+    gap: 40px;
   }
 
-  .hero-artwork {
-    min-height: 300px;
+  .hero-ecosystem {
+    max-width: 350px;
+    height: 350px;
+  }
+
+  .creative-canvas {
+    width: 140px;
+    height: 140px;
+  }
+
+  .product-node {
+    width: 48px;
+    height: 48px;
+  }
+
+  .product-node img {
+    width: 28px;
+    height: 28px;
   }
 
   .adobe-hero-headline {
