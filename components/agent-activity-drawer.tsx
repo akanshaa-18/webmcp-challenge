@@ -12,26 +12,32 @@ export function AgentActivityDrawer() {
     return null;
   }
 
+  // Only show truly verified events, not inferred state
   const activities = [
     {
       status: passport.userGoal ? "✓" : "◯",
-      text: "Creative requirements understood",
+      text: "Requirements understood",
+      detail: passport.userGoal ? "(goal set)" : null,
     },
     {
       status: passport.discoveredCapabilities.length > 0 ? "✓" : "◯",
-      text: "Matching Adobe products identified",
+      text: "Products identified",
+      detail: passport.discoveredCapabilities.length > 0 ? `(${passport.discoveredCapabilities.length} capabilities)` : null,
     },
     {
       status: passport.region ? "✓" : "◯",
-      text: "Live regional pricing resolved",
+      text: "Market context set",
+      detail: passport.region ? `(${passport.region})` : null,
     },
     {
       status: passport.selectedWorkflowId ? "✓" : "◯",
       text: "Workflow composed",
+      detail: passport.recommendedWorkflow ? `(${passport.recommendedWorkflow})` : null,
     },
     {
       status: passport.selectedDestination ? "✓" : "◯",
-      text: "Checkout prepared",
+      text: "Checkout ready",
+      detail: passport.selectedDestination ? "(link prepared)" : null,
     },
   ];
 
@@ -50,8 +56,13 @@ export function AgentActivityDrawer() {
       <div className="agent-activity-content">
         {activities.map((activity, idx) => (
           <div key={idx} className="agent-activity-item">
-            <span className="agent-activity-status">{activity.status}</span>
-            <p className="agent-activity-text">{activity.text}</p>
+            <span className={`agent-activity-status ${activity.status === "✓" ? "completed" : ""}`}>
+              {activity.status}
+            </span>
+            <div className="agent-activity-info">
+              <p className="agent-activity-text">{activity.text}</p>
+              {activity.detail && <p className="agent-activity-detail">{activity.detail}</p>}
+            </div>
           </div>
         ))}
       </div>

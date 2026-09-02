@@ -26,8 +26,34 @@ export function PremiumPlansSection() {
   const [recommendedPlan, setRecommendedPlan] = useState<any>(null);
   const [recommendedPlanPrice, setRecommendedPlanPrice] = useState<PriceState>({ status: "loading" });
   const [showExplanation, setShowExplanation] = useState(false);
+  const [catalogPrices, setCatalogPrices] = useState<Record<string, PriceState>>({});
 
-  // Load recommended plan if we have session context
+  // Load catalog prices (initial state - no personalization)
+  useEffect(() => {
+    const loadCatalogPrices = async () => {
+      const prices: Record<string, PriceState> = {};
+      for (const plan of plansFixture) {
+        const result = await getPlanPrice(
+          plansFixture,
+          { planId: plan.id, region: plan.supportedRegions[0] },
+          readSessionContext(),
+        );
+        if (result.status === "ok") {
+          prices[plan.id] = {
+            status: "ok",
+            formattedPrice: result.data.formattedPrice,
+            currency: result.data.currency,
+          };
+        } else {
+          prices[plan.id] = { status: "price_unavailable" };
+        }
+      }
+      setCatalogPrices(prices);
+    };
+    loadCatalogPrices();
+  }, []);
+
+  // Load recommended plan if we have agent-provided context
   useEffect(() => {
     const loadRecommendation = async () => {
       if (!passport.region && !passport.audience) {
@@ -48,7 +74,6 @@ export function PremiumPlansSection() {
       if (result.status === "ok" && result.data.recommendedPlan) {
         setRecommendedPlan(result.data.recommendedPlan);
 
-        // Load price for recommended plan
         const priceResult = await getPlanPrice(
           plansFixture,
           { planId: result.data.recommendedPlan.planId, region: passport.region },
@@ -70,15 +95,6 @@ export function PremiumPlansSection() {
     loadRecommendation();
   }, [passport.region, passport.audience, passport.requirements]);
 
-  // Default student plan when no recommendation
-  const displayPlan = recommendedPlan || {
-    planId: "adobe-student-cc-in",
-    name: "Creative Cloud — Students",
-    description: "All Adobe creative apps with Generative Credits for AI-powered creativity",
-    includedApps: ["Photoshop", "Illustrator", "Premiere Pro", "XD", "Firefly"],
-  };
-
-  const displayPrice = recommendedPlanPrice;
   const hasContext = passport.region || passport.audience;
 
   return (
@@ -86,26 +102,26 @@ export function PremiumPlansSection() {
       <h2 className="plans-section-heading">Plans & Pricing</h2>
       <p className="plans-section-subtext">
         {!hasContext
-          ? "Ask your AI assistant about your region and whether you're a student to get a personalized plan recommendation with live regional pricing."
-          : "Your recommendation based on context provided to your AI assistant."}
+          ? "Current regional pricing appears when your assistant knows your market."
+          : "Your recommendation based on context provided to your assistant."}
       </p>
 
-      {hasContext && (
+      {hasContext && recommendedPlan ? (
         <>
           <div className="plans-recommendation">
             <div className="plans-rec-info">
-              <h3 className="plans-rec-name">{displayPlan.name}</h3>
+              <h3 className="plans-rec-name">{recommendedPlan.name}</h3>
               <p className="plans-rec-reason">Covers your creative needs</p>
               <ul className="plans-rec-capabilities">
-                {displayPlan.includedApps?.slice(0, 4).map((app: string) => (
+                {recommendedPlan.includedApps?.slice(0, 4).map((app: string) => (
                   <li key={app}>{app}</li>
                 ))}
               </ul>
             </div>
             <div className="plans-rec-pricing">
-              {displayPrice.status === "ok" ? (
+              {recommendedPlanPrice.status === "ok" ? (
                 <>
-                  <p className="plans-rec-price">{displayPrice.formattedPrice}</p>
+                  <p className="plans-rec-price">{recommendedPlanPrice.formattedPrice}</p>
                   <p className="plans-rec-period">/month</p>
                   <div className="plans-rec-source">
                     <div className="plans-rec-source-dot"></div>
@@ -155,10 +171,32 @@ export function PremiumPlansSection() {
             )}
           </details>
         </>
+      ) : (
+        <div className="plans-catalog">
+          {plansFixture.map((plan) => (
+            <div key={plan.id} className="plans-catalog-card">
+              <p className="plans-catalog-badge">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
+              <h3 className="plans-catalog-name">{plan.name}</h3>
+              <p className="plans-catalog-price">
+                {catalogPrices[plan.id]?.status === "ok"
+                  ? catalogPrices[plan.id].formattedPrice
+                  : "—"}
+              </p>
+              <p className="plans-catalog-period">/month · {plan.supportedRegions[0]}</p>
+              <ul className="plans-catalog-apps">
+                {plan.includedApps.slice(0, 3).map((app) => (
+                  <li key={app}>{app}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
 
-      <p style={{ fontSize: "0.8rem", color: "var(--adobe-neutral-mid)", marginTop: 16 }}>
-        Recommendation based on your creative needs and region. Pricing resolved from live regional Adobe commerce.
+      <p style={{ fontSize: "0.8rem", color: "var(--adobe-neutral-mid)", marginTop: 16, textAlign: "center" }}>
+        {hasContext && recommendedPlan
+          ? "Recommendation based on your creative needs and region. Pricing resolved from live regional Adobe commerce."
+          : "Plan information and reference pricing. Ask your assistant about your market and needs for a personalized recommendation."}
       </p>
     </section>
   );

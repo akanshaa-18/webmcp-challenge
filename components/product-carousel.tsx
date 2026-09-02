@@ -4,7 +4,8 @@ interface Product {
   id: string;
   name: string;
   role: string;
-  icon: string;
+  initials: string;
+  color: string;
   highlights: string[];
 }
 
@@ -13,7 +14,8 @@ const FEATURED_PRODUCTS: Product[] = [
     id: "photoshop",
     name: "Photoshop",
     role: "Image editing & design",
-    icon: "🎨",
+    initials: "Ps",
+    color: "#001AFF",
     highlights: [
       "Remove & replace backgrounds",
       "Photo retouching & restoration",
@@ -25,7 +27,8 @@ const FEATURED_PRODUCTS: Product[] = [
     id: "illustrator",
     name: "Illustrator",
     role: "Vector design & illustration",
-    icon: "✏️",
+    initials: "Ai",
+    color: "#FF9B00",
     highlights: [
       "Create scalable vector graphics",
       "Brand design & typography",
@@ -37,7 +40,8 @@ const FEATURED_PRODUCTS: Product[] = [
     id: "firefly",
     name: "Firefly",
     role: "Generative creativity",
-    icon: "✨",
+    initials: "Ff",
+    color: "#FF4B4B",
     highlights: [
       "Text-to-image generation",
       "Background replacement",
@@ -49,7 +53,8 @@ const FEATURED_PRODUCTS: Product[] = [
     id: "express",
     name: "Adobe Express",
     role: "Social & web content",
-    icon: "🚀",
+    initials: "Ex",
+    color: "#FF0099",
     highlights: [
       "Social media templates",
       "Quick design creation",
@@ -61,7 +66,8 @@ const FEATURED_PRODUCTS: Product[] = [
     id: "premiere",
     name: "Premiere Pro",
     role: "Professional video editing",
-    icon: "🎬",
+    initials: "Pr",
+    color: "#9933FF",
     highlights: [
       "Timeline-based editing",
       "Color grading & VFX",
@@ -78,7 +84,9 @@ export function ProductCarousel() {
       <div className="product-carousel">
         {FEATURED_PRODUCTS.map((product) => (
           <article key={product.id} className="product-card">
-            <div className="product-icon">{product.icon}</div>
+            <div className="product-mark" style={{ backgroundColor: product.color }}>
+              {product.initials}
+            </div>
             <h3>{product.name}</h3>
             <p className="product-role">{product.role}</p>
             <ul className="product-highlights">
