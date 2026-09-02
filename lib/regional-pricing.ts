@@ -236,9 +236,8 @@ export async function extractPlanOsi(
     return { status: "error", reason: `fragment_unavailable:${planId}` };
   }
 
-  const url = `${MAS_FRAGMENT_ENDPOINT}?ids=${fragmentId}&locale=${resolvedLocale}`;
   try {
-    const response = await (fetchImpl || fetch)(url);
+    const response = await fetchMasFragment(fragmentId, resolvedLocale, fetchImpl || fetch);
     if (!response.ok) {
       return { status: "error", reason: `mas_upstream_error:${response.status}` };
     }

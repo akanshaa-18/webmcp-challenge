@@ -41,9 +41,6 @@ describe("plans tools logic", () => {
 
   it("exposes supportedRegions metadata (not a single region string) from get_regional_plans and get_plan_capabilities", () => {
     const regional = getRegionalPlans(plansFixture, { region: "US" });
-    if (regional.status === "error") {
-      throw new Error("Expected ok result.");
-    }
     for (const plan of regional.data.plans) {
       expect(plan.supportedRegions).toEqual(["IN", "US"]);
       expect(plan).not.toHaveProperty("region");
