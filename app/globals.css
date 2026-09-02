@@ -1377,6 +1377,11 @@ a {
   flex-shrink: 0;
   margin-top: 2px;
   color: var(--adobe-neutral-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
 }
 
 .agent-activity-status.completed {
@@ -1385,6 +1390,20 @@ a {
 
 .agent-activity-status.error {
   color: var(--warning);
+}
+
+.agent-activity-status.running {
+  color: var(--adobe-red);
+  animation: pulse-dot 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .agent-activity-empty {

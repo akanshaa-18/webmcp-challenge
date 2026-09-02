@@ -4,21 +4,11 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useMission } from "@/components/mission-provider";
 import { plansFixture } from "@/lib/fixtures";
-import { getPlanPrice, comparePlanOptions, SessionContext } from "@/lib/plans";
-import { getMissionRuntime } from "@/lib/mission-runtime";
 
 interface PriceState {
   status: "loading" | "ok" | "price_unavailable";
   formattedPrice?: string;
   currency?: string;
-}
-
-function readSessionContext(): SessionContext {
-  const runtime = getMissionRuntime();
-  return {
-    region: runtime?.intentPassport.region,
-    audience: runtime?.intentPassport.audience,
-  };
 }
 
 export function PremiumPlansSection() {
@@ -39,34 +29,22 @@ export function PremiumPlansSection() {
     setCatalogPrices(prices);
   }, []);
 
-  // Load recommended plan if we have actual compare_plan_options result from agent
+  // Use pricing from compare_plan_options result (already live pricing from WebMCP execution)
   useEffect(() => {
     if (passport.comparePlanResult) {
       setRecommendedPlan(passport.comparePlanResult);
 
-      const loadPrice = async () => {
-        const sessionContext = readSessionContext();
-        const planId = passport.comparePlanResult?.planId;
-        if (!planId || !passport.region) return;
-
-        const priceResult = await getPlanPrice(
-          plansFixture,
-          { planId, region: passport.region },
-          sessionContext,
-        );
-
-        if (priceResult.status === "ok") {
-          setRecommendedPlanPrice({
-            status: "ok",
-            formattedPrice: priceResult.data.formattedPrice,
-            currency: priceResult.data.currency,
-          });
-        } else {
-          setRecommendedPlanPrice({ status: "price_unavailable" });
-        }
-      };
-
-      loadPrice();
+      // Extract pricing already returned by compare_plan_options WebMCP tool
+      const pricing = (passport.comparePlanResult as any)?.pricing;
+      if (pricing?.formattedPrice) {
+        setRecommendedPlanPrice({
+          status: "ok",
+          formattedPrice: pricing.formattedPrice,
+          currency: pricing.currency,
+        });
+      } else {
+        setRecommendedPlanPrice({ status: "price_unavailable" });
+      }
     }
   }, [passport.comparePlanResult]);
 

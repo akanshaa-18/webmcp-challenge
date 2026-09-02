@@ -40,8 +40,8 @@ export function AgentActivityDrawer() {
               .sort((a, b) => a.order - b.order)
               .map((event) => (
                 <div key={`${event.toolName}-${event.order}`} className="agent-activity-item">
-                  <span className={`agent-activity-status ${event.status === "success" ? "completed" : event.status === "error" ? "error" : ""}`}>
-                    {event.status === "success" ? "✓" : event.status === "error" ? "✕" : "◯"}
+                  <span className={`agent-activity-status ${event.status === "success" ? "completed" : event.status === "error" ? "error" : event.status === "running" ? "running" : ""}`}>
+                    {event.status === "success" ? "✓" : event.status === "error" ? "✕" : event.status === "running" ? "●" : "◯"}
                   </span>
                   <div className="agent-activity-info">
                     <p className="agent-activity-text">{event.summary || event.toolName}</p>
