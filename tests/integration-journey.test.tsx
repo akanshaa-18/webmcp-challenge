@@ -188,7 +188,7 @@ describe("integration journey checkpoint", () => {
     });
     expect(pricing.status).toBe("ok");
     const pricingData = pricing.data as { dataSource: string } | undefined;
-    expect(pricingData?.dataSource).toBe("demo_snapshot");
+    expect(pricingData?.dataSource).toBe("live_regional_pricing");
 
     expect(getMissionRuntime()?.mission).toEqual(missionBeforePlans);
 

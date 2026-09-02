@@ -4,7 +4,7 @@ Core principles:
 - **Discover globally. Execute locally. Resume seamlessly.**
 - **Understand globally. Verify authoritatively. Compose across Adobe. Hand off precisely.**
 
-This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and plan-selection journeys involving publicly described Adobe product capabilities, using synthetic data only.
+This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and plan-selection journeys involving publicly described Adobe product capabilities, with live regional pricing and snapshot product metadata.
 
 ## Architecture (Milestone 1)
 
@@ -13,7 +13,8 @@ This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and plan-s
 - **Legacy/demo surfaces** (`/project/kaftan`, `/firefly`, `/express`) remain available for compatibility and route-local WebMCP lifecycle regression tests.
 - **Plans surface** (`/plans`) remains part of the public flow for pricing/capability exploration.
 - **Persistent mission context** is kept in React state and `sessionStorage` so mission/handoff state survives route navigation.
-- **Data is synthetic only** (Meera, Kaftan project, files, and generated outputs). No production Adobe APIs or customer data are used.
+- **Mission/project data is synthetic** (Meera, Kaftan project, files, and generated outputs).
+- **Regional pricing** is resolved at request time from an approved public Adobe commerce path (MAS fragment → offer selector → regional commerce response).
 - **Public intelligence catalog** (`lib/catalog/*`) is sourced as a **public reference snapshot** and powers global read-only product intelligence tools.
 - **Workflow composer** (`build_adobe_workflow`) composes deterministic multi-step Adobe workflows from structured catalog capabilities.
 
@@ -101,7 +102,7 @@ No local-only filesystem paths are required for runtime behavior.
    - click **Approve deletion** in UI
    - second call with confirmation ID succeeds
 
-Plans disclosure shown in UI: **Pricing and plan information shown in this prototype uses public reference snapshot data.**
+Plans disclosure shown in UI: **Plan information uses a public reference snapshot. Pricing is resolved at request time from live regional pricing.**
 
 Public catalog data source label used by the new intelligence tools: **public_reference_snapshot**.
 

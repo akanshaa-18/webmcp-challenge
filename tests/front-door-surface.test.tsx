@@ -137,7 +137,7 @@ describe("front door surface", () => {
     });
   });
 
-  it("persists intent passport and shows plans/compatibility summaries using existing logic", async () => {
+  it("persists intent passport and shows plans/compatibility summaries using live pricing", async () => {
     registerTools();
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -158,7 +158,7 @@ describe("front door surface", () => {
     expect(container.textContent).toContain("Plans");
     expect(container.textContent).toContain("Recommended plan:");
     expect(container.textContent).toContain("Regional price:");
-    expect(container.textContent).toContain("demo_snapshot");
+    expect(container.textContent).toContain("live_regional_pricing");
     expect(container.textContent).toContain("Device compatibility");
     expect(container.textContent).toContain("More device information needed.");
     expect(container.textContent).toContain("public_reference_snapshot");

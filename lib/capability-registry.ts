@@ -137,7 +137,7 @@ export const toolManifests: ToolManifest[] = [
   {
     toolName: "adobe_plans.get_plan_price",
     ownerSurface: "Adobe Plans",
-    description: "Return regional plan pricing from demo snapshot data.",
+    description: "Return regional plan pricing from live regional pricing data.",
     inputSchema: {
       type: "object",
       properties: {

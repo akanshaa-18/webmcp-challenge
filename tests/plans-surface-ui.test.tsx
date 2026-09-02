@@ -44,7 +44,7 @@ async function flush() {
 }
 
 describe("plans surface ui cleanup", () => {
-  it("removes persona/header chrome and keeps subtle snapshot disclosure", async () => {
+  it("removes persona/header chrome and keeps snapshot/live provenance disclosure", async () => {
     registerTools();
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -68,7 +68,7 @@ describe("plans surface ui cleanup", () => {
     expect(text).not.toContain("Marketing & Commerce");
 
     expect(text).toContain(
-      "Pricing and plan information shown in this prototype uses public reference snapshot data.",
+      "Plan information uses a public reference snapshot. Pricing is resolved at request time from live regional pricing.",
     );
 
     await act(async () => {

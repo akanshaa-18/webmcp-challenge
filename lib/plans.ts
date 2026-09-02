@@ -1,5 +1,6 @@
 import { Plan, UserFixture } from "@/lib/types";
 import { toolError } from "@/lib/errors";
+import { resolvePlanPrice } from "@/lib/regional-pricing";
 
 interface PlanCompareInput {
   requirements: string[];
@@ -73,26 +74,51 @@ export function getPlanCapabilities(plans: Plan[], planId: string) {
   };
 }
 
-export function getPlanPrice(plans: Plan[], user: UserFixture, input: { planId: string; region?: string }) {
+export async function getPlanPrice(plans: Plan[], user: UserFixture, input: { planId: string; region?: string }) {
   const targetRegion = input.region ?? user.region;
   const plan = plans.find((item) => item.id === input.planId && item.region === targetRegion);
   if (!plan) {
     return toolError("UNKNOWN_PLAN", `No plan found for ${input.planId} in region ${targetRegion}.`);
   }
+
+  const livePrice = await resolvePlanPrice({
+    planId: plan.id,
+    country: targetRegion,
+  });
+
+  if (livePrice.status !== "ok") {
+    return {
+      status: "price_unavailable" as const,
+      data: {
+        planId: plan.id,
+        region: targetRegion,
+        country: livePrice.data.country,
+        locale: livePrice.data.locale,
+        reason: livePrice.data.reason,
+        dataSource: livePrice.data.source,
+        retrievedAt: livePrice.data.retrievedAt,
+      },
+    };
+  }
+
   return {
     status: "ok" as const,
     data: {
       planId: plan.id,
-      region: plan.region,
-      currency: plan.currency,
-      amount: plan.price,
-      billingPeriod: plan.billingPeriod,
-      dataSource: "demo_snapshot",
+      region: targetRegion,
+      country: livePrice.data.country,
+      locale: livePrice.data.locale,
+      currency: livePrice.data.currency,
+      amount: livePrice.data.amount,
+      formattedPrice: livePrice.data.formattedPrice,
+      billingPeriod: livePrice.data.billingPeriod,
+      dataSource: livePrice.data.source,
+      retrievedAt: livePrice.data.retrievedAt,
     },
   };
 }
 
-export function comparePlanOptions(plans: Plan[], user: UserFixture, input: PlanCompareInput) {
+export async function comparePlanOptions(plans: Plan[], user: UserFixture, input: PlanCompareInput) {
   if (!input.requirements?.length) {
     return toolError("MISSING_REQUIRED_CONTEXT", "requirements must include at least one item.");
   }
@@ -111,8 +137,6 @@ export function comparePlanOptions(plans: Plan[], user: UserFixture, input: Plan
     return {
       planId: plan.id,
       name: plan.name,
-      price: plan.price,
-      currency: plan.currency,
       billingPeriod: plan.billingPeriod,
       studentEligible: plan.studentEligible,
       matchedCapabilities,
@@ -121,9 +145,70 @@ export function comparePlanOptions(plans: Plan[], user: UserFixture, input: Plan
     };
   });
 
-  const candidates = assessed
-    .filter((plan) => plan.qualifies)
-    .sort((a, b) => a.price - b.price || a.name.localeCompare(b.name));
+  const qualified = assessed.filter((plan) => plan.qualifies);
+  type AssessedPlan = (typeof assessed)[number];
+  type PricedCandidate = {
+    candidate: AssessedPlan;
+    pricing: {
+      planId: string;
+      region: string;
+      country: string;
+      locale: string;
+      currency: string;
+      amount: number;
+      formattedPrice: string;
+      billingPeriod: "month" | "year" | "unknown";
+      dataSource: "live_regional_pricing";
+      retrievedAt: string;
+    };
+  };
+  const priceResults = await Promise.all(
+    qualified.map(async (candidate) => {
+      const price = await getPlanPrice(plans, user, {
+        planId: candidate.planId,
+        region,
+      });
+      return { candidate, price };
+    }),
+  );
+
+  const pricedQualified: PricedCandidate[] = [];
+  for (const entry of priceResults) {
+    if (entry.price.status === "ok") {
+      pricedQualified.push({
+        candidate: entry.candidate,
+        pricing: entry.price.data,
+      });
+    }
+  }
+  pricedQualified.sort((a, b) => a.pricing.amount - b.pricing.amount || a.candidate.name.localeCompare(b.candidate.name));
+
+  const candidates = assessed.map((candidate) => {
+    const matched = priceResults.find((entry) => entry.candidate.planId === candidate.planId);
+    if (!matched) {
+      return candidate;
+    }
+    if (matched.price.status === "ok") {
+      return {
+        ...candidate,
+        pricing: matched.price.data,
+      };
+    }
+    if (matched.price.status === "price_unavailable") {
+      return {
+        ...candidate,
+        pricing: matched.price.data,
+      };
+    }
+    return {
+      ...candidate,
+      pricing: {
+        planId: candidate.planId,
+        region,
+        reason: "contract_error",
+      },
+    };
+  });
 
   return {
     status: "ok" as const,
@@ -131,10 +216,14 @@ export function comparePlanOptions(plans: Plan[], user: UserFixture, input: Plan
       region,
       student,
       requirements: input.requirements,
-      candidates: assessed,
-      recommendedPlan: candidates[0] ?? null,
-      dataSource: "demo_snapshot",
+      candidates,
+      recommendedPlan: pricedQualified[0]
+        ? {
+            ...pricedQualified[0].candidate,
+            pricing: pricedQualified[0].pricing,
+          }
+        : null,
+      dataSource: "live_regional_pricing",
     },
   };
 }
-

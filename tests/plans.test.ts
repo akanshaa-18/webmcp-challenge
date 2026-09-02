@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { plansFixture, userFixture } from "@/lib/fixtures";
 import { comparePlanOptions, getPlanCapabilities, getPlanPrice, getRegionalPlans, getUserRegion } from "@/lib/plans";
+import { clearRegionalPricingCache } from "@/lib/regional-pricing";
 
 describe("plans tools logic", () => {
   it("defaults region to IN for Meera", () => {
@@ -31,17 +32,23 @@ describe("plans tools logic", () => {
     expect(capabilities.data.capabilities).toContain("business card design");
   });
 
-  it("returns demo snapshot pricing metadata", () => {
-    const pricing = getPlanPrice(plansFixture, userFixture, { planId: "adobe-student-cc-in" });
+  it("returns live regional pricing metadata", async () => {
+    const pricing = await getPlanPrice(plansFixture, userFixture, { planId: "adobe-student-cc-in" });
     if ("status" in pricing && pricing.status === "error") {
       throw new Error("Expected known plan pricing");
     }
-    expect(pricing.data.dataSource).toBe("demo_snapshot");
-    expect(pricing.data.region).toBe("IN");
+    expect(pricing.status).toBe("ok");
+    if (pricing.status === "ok") {
+      expect(pricing.data.dataSource).toBe("live_regional_pricing");
+      expect(pricing.data.region).toBe("IN");
+      expect(pricing.data.country).toBe("IN");
+      expect(pricing.data.locale).toBe("en_IN");
+      expect(pricing.data.currency).toBe("INR");
+    }
   });
 
-  it("comparison avoids missing-capability plans and prefers lower-cost qualifying option", () => {
-    const result = comparePlanOptions(plansFixture, userFixture, {
+  it("comparison avoids missing-capability plans and prefers lower-cost qualifying option", async () => {
+    const result = await comparePlanOptions(plansFixture, userFixture, {
       requirements: ["photo editing", "business card design", "background replacement"],
     });
     if ("status" in result && result.status === "error") {
@@ -53,12 +60,79 @@ describe("plans tools logic", () => {
     expect(recommended?.missingCapabilities).toHaveLength(0);
     expect(recommended?.planId).toBe("adobe-student-cc-in");
 
-    const rerun = comparePlanOptions(plansFixture, userFixture, {
+    const rerun = await comparePlanOptions(plansFixture, userFixture, {
       requirements: ["photo editing", "business card design", "background replacement"],
     });
     if ("status" in rerun && rerun.status === "error") {
       throw new Error("Expected deterministic comparison result.");
     }
     expect(rerun.data.recommendedPlan?.planId).toBe(recommended?.planId);
+    expect(rerun.data.dataSource).toBe("live_regional_pricing");
+  });
+
+  it("compare_plan_options continues when one qualifying plan pricing fails", async () => {
+    clearRegionalPricingCache();
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const baseline = fetchMock.getMockImplementation() ?? (async () => new Response("", { status: 500 }));
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url,
+      );
+      if (url.pathname === "/mas/io/fragment" && url.searchParams.get("id") === "2c5cd672-1db8-409c-96ff-46b1a1dfb7dc") {
+        return new Response("", { status: 404 });
+      }
+      return baseline(input, init);
+    });
+
+    const result = await comparePlanOptions(plansFixture, userFixture, {
+      requirements: ["photo editing", "business card design", "background replacement"],
+      region: "IN",
+      student: true,
+    });
+    fetchMock.mockImplementation(baseline);
+
+    if (result.status === "error") {
+      throw new Error("Expected comparison output.");
+    }
+    expect(result.data.recommendedPlan?.planId).toBe("adobe-student-cc-in");
+    expect(result.data.candidates.some(
+      (candidate) =>
+        candidate.planId === "adobe-all-apps-in"
+        && "pricing" in candidate
+        && Boolean((candidate as { pricing?: { reason?: string } }).pricing?.reason),
+    )).toBe(true);
+  });
+
+  it("compare_plan_options returns no recommendation when all qualifying prices fail", async () => {
+    clearRegionalPricingCache();
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const baseline = fetchMock.getMockImplementation() ?? (async () => new Response("", { status: 500 }));
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(
+        typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url,
+      );
+      if (url.pathname === "/mas/io/fragment") {
+        return new Response("", { status: 404 });
+      }
+      return baseline(input, init);
+    });
+
+    const result = await comparePlanOptions(plansFixture, userFixture, {
+      requirements: ["photo editing", "business card design", "background replacement"],
+      region: "IN",
+      student: true,
+    });
+    fetchMock.mockImplementation(baseline);
+
+    if (result.status === "error") {
+      throw new Error("Expected comparison output.");
+    }
+    expect(result.data.recommendedPlan).toBeNull();
+    expect(result.data.candidates.some(
+      (candidate) =>
+        candidate.qualifies
+        && "pricing" in candidate
+        && Boolean((candidate as { pricing?: { reason?: string } }).pricing?.reason),
+    )).toBe(true);
   });
 });
