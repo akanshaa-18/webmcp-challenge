@@ -32,7 +32,7 @@ export function PremiumPlansSection() {
 
       // Fetch live US pricing for all plans (US is backend default when no region supplied)
       for (const plan of plansFixture) {
-        const result = await getPlanPrice(plansFixture, { planId: plan.id, region: "United States" });
+        const result = await getPlanPrice(plansFixture, { planId: plan.id, region: "US" });
 
         if (result.status === "ok") {
           prices[plan.id] = {
