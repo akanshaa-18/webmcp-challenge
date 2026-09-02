@@ -8,6 +8,7 @@ import {
 } from "@/lib/plans";
 import { toolError } from "@/lib/errors";
 import { getMissionRuntime } from "@/lib/mission-runtime";
+import { trackToolExecution } from "@/lib/execution-tracker";
 
 function readSessionContext(): SessionContext {
   const runtime = getMissionRuntime();
@@ -88,11 +89,18 @@ export function createPlanActionTools() {
         if (!input?.planId) {
           return toolError("MISSING_REQUIRED_CONTEXT", "The planId field is required.");
         }
+        const { recordSuccess, recordError } = trackToolExecution("get_plan_price");
         const sessionContext = readSessionContext();
         const result = await getPlanPrice(plansFixture, { planId: input.planId, region: input.region }, sessionContext);
-        if (input?.region) {
-          const runtime = getMissionRuntime();
-          runtime?.updateIntentPassport((passport) => ({ ...passport, region: input.region, regionFromTool: true }));
+        if (result.status === "ok") {
+          const resultData = (result as any).data;
+          if (input?.region) {
+            const runtime = getMissionRuntime();
+            runtime?.updateIntentPassport((passport) => ({ ...passport, region: input.region, regionFromTool: true }));
+          }
+          recordSuccess(`Live price resolved: ${resultData?.formattedPrice || "price"}`);
+        } else if (result.status === "error") {
+          recordError("PRICING_FAILED", (result as any).data?.reason || "Unknown error");
         }
         return result;
       },
@@ -130,6 +138,7 @@ export function createPlanActionTools() {
         required: ["requirements"],
       },
       execute: async (input: { requirements?: string[]; region?: string; student?: boolean; audience?: string }) => {
+        const { recordSuccess, recordError } = trackToolExecution("compare_plan_options");
         const sessionContext = readSessionContext();
         const result = await comparePlanOptions(
           plansFixture,
@@ -141,17 +150,23 @@ export function createPlanActionTools() {
           },
           sessionContext,
         );
-        if (result.status === "ok" && result.data.recommendedPlan) {
-          const runtime = getMissionRuntime();
-          runtime?.updateIntentPassport((passport) => ({
-            ...passport,
-            ...(input?.region ? { region: input.region, regionFromTool: true } : {}),
-            ...(result.data.audience && (input?.audience !== undefined || input?.student !== undefined)
-              ? { audience: result.data.audience }
-              : {}),
-            // Store actual tool result for premium UI
-            comparePlanResult: result.data.recommendedPlan,
-          }));
+        if (result.status === "ok") {
+          const resultData = (result as any).data;
+          if (resultData?.recommendedPlan) {
+            const runtime = getMissionRuntime();
+            runtime?.updateIntentPassport((passport) => ({
+              ...passport,
+              ...(input?.region ? { region: input.region, regionFromTool: true } : {}),
+              ...(resultData.audience && (input?.audience !== undefined || input?.student !== undefined)
+                ? { audience: resultData.audience }
+                : {}),
+              // Store actual tool result for premium UI
+              comparePlanResult: resultData.recommendedPlan,
+            }));
+            recordSuccess(`Plan recommendation: ${resultData.recommendedPlan.name}`);
+          }
+        } else if (result.status === "error") {
+          recordError("COMPARE_FAILED", (result as any).data?.reason || "Unknown error");
         }
         return result;
       },

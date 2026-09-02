@@ -68,6 +68,17 @@ export interface Mission {
   handoffHistory: string[];
 }
 
+export interface ExecutionEvent {
+  toolName: string;
+  order: number;
+  status: "running" | "success" | "error";
+  startedAt: string;
+  completedAt?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  summary?: string;
+}
+
 export interface IntentPassport {
   id: string;
   userGoal: string;
@@ -92,6 +103,8 @@ export interface IntentPassport {
   // Track when context is set by actual tool execution (not seeded)
   regionFromTool?: boolean;
   workflowFromTool?: boolean;
+  // Real WebMCP execution timeline
+  executionHistory: ExecutionEvent[];
 }
 
 export interface HandoffContext {

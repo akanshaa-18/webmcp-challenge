@@ -1284,6 +1284,15 @@ a {
   color: #4db81a;
 }
 
+.agent-activity-status.error {
+  color: var(--warning);
+}
+
+.agent-activity-empty {
+  padding: 24px 16px;
+  text-align: center;
+}
+
 .agent-activity-info {
   display: grid;
   gap: 2px;

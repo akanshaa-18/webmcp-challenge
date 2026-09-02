@@ -10,6 +10,7 @@ import {
 } from "@/lib/capability-registry";
 import { toolError } from "@/lib/errors";
 import { getMissionRuntime } from "@/lib/mission-runtime";
+import { trackToolExecution } from "@/lib/execution-tracker";
 import {
   checkDeviceCompatibility,
   findProductForTask,
@@ -150,9 +151,13 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
       },
       annotations: { readOnlyHint: true },
       execute: (input: { task?: string }) => {
+        const { recordSuccess, recordError } = trackToolExecution("build_adobe_workflow");
         const runtime = getMissionRuntime();
         const result = buildAdobeWorkflow(input?.task, runtime?.intentPassport.userConstraints ?? []);
         if (result.status !== "ok") {
+          if (result.status === "error") {
+            recordError("WORKFLOW_FAILED", (result as any).data?.reason || "Unknown error");
+          }
           return result;
         }
 
@@ -185,6 +190,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             actualWorkflowSteps: workflowSteps,
             workflowFromTool: true,
           }));
+          recordSuccess(`Workflow composed: ${workflowSteps.length} steps`);
         }
 
         return result;
@@ -522,13 +528,17 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
       },
       annotations: { readOnlyHint: false },
       execute: async (input: { planId?: string; action?: string; region?: string }) => {
+        const { recordSuccess, recordError } = trackToolExecution("get_checkout_link");
+
         if (!input?.planId || typeof input.planId !== "string") {
+          recordError("MISSING_PLAN_ID", "A planId is required.");
           return toolError(
             "MISSING_PLAN_ID",
             "A planId is required. Use a plan ID from the plans array returned by compare_plan_options.",
           );
         }
         if (input.action !== "buy" && input.action !== "trial") {
+          recordError("INVALID_ACTION", 'action must be "buy" or "trial".');
           return toolError("INVALID_ACTION", 'action must be "buy" or "trial".');
         }
 
@@ -537,6 +547,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
 
         if (!resolvedRegion) {
           if (!runtime) {
+            recordError("MISSING_REGION", "A region is required.");
             return toolError(
               "MISSING_REGION",
               "A region is required. Either pass region explicitly, or call compare_plan_options first to establish session region.",
@@ -546,6 +557,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         }
 
         if (!resolvedRegion) {
+          recordError("MISSING_REGION", "A region/country code is required.");
           return toolError(
             "MISSING_REGION",
             "A region/country code is required (e.g. IN, US). Pass explicitly or establish via prior compare_plan_options call.",
@@ -554,6 +566,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
 
         const osiEntry = PLAN_CHECKOUT_OSIS[input.planId];
         if (!osiEntry) {
+          recordError("UNKNOWN_PLAN", `No checkout link found for plan ${input.planId}.`);
           return toolError(
             "UNKNOWN_PLAN",
             `No checkout link found for plan ${input.planId}. Use a plan ID from compare_plan_options.`,
@@ -562,6 +575,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
 
         const osi = osiEntry[input.action];
         if (!osi) {
+          recordError("ACTION_NOT_AVAILABLE", `${input.action === "trial" ? "Trial" : "Purchase"} is not available for plan ${input.planId}.`);
           return toolError(
             "ACTION_NOT_AVAILABLE",
             `${input.action === "trial" ? "Trial" : "Purchase"} is not available for plan ${input.planId}.`,
@@ -582,6 +596,8 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
               : [...passport.discoveredCapabilities, "adobe_plans.checkout"],
           }));
         }
+
+        recordSuccess(`Checkout ready: ${input.action} ${input.planId}`);
 
         return {
           status: "ok",

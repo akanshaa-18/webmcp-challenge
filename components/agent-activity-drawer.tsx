@@ -12,34 +12,8 @@ export function AgentActivityDrawer() {
     return null;
   }
 
-  // Track actual successful tool execution only
-  const activities = [
-    {
-      status: passport.userGoal ? "✓" : "◯",
-      text: "Requirements understood",
-      detail: passport.userGoal ? "(goal set)" : null,
-    },
-    {
-      status: passport.comparePlanResult ? "✓" : "◯",
-      text: "Plan recommendation updated",
-      detail: passport.comparePlanResult ? `(${passport.comparePlanResult.name})` : null,
-    },
-    {
-      status: passport.regionFromTool ? "✓" : "◯",
-      text: "Market context set",
-      detail: passport.region && passport.regionFromTool ? `(${passport.region})` : null,
-    },
-    {
-      status: passport.workflowFromTool && passport.actualWorkflowSteps && passport.actualWorkflowSteps.length > 0 ? "✓" : "◯",
-      text: "Workflow composed",
-      detail: passport.actualWorkflowSteps && passport.workflowFromTool ? `(${passport.actualWorkflowSteps.length} steps)` : null,
-    },
-    {
-      status: passport.checkoutUrl ? "✓" : "◯",
-      text: "Checkout prepared",
-      detail: passport.checkoutUrl ? `(${passport.checkoutAction || "action"})` : null,
-    },
-  ];
+  // Display real WebMCP execution events in chronological order
+  const hasExecutions = passport.executionHistory && passport.executionHistory.length > 0;
 
   return (
     <div className="agent-activity-drawer">
@@ -54,17 +28,38 @@ export function AgentActivityDrawer() {
         </button>
       </div>
       <div className="agent-activity-content">
-        {activities.map((activity, idx) => (
-          <div key={idx} className="agent-activity-item">
-            <span className={`agent-activity-status ${activity.status === "✓" ? "completed" : ""}`}>
-              {activity.status}
-            </span>
-            <div className="agent-activity-info">
-              <p className="agent-activity-text">{activity.text}</p>
-              {activity.detail && <p className="agent-activity-detail">{activity.detail}</p>}
-            </div>
+        {!hasExecutions ? (
+          <div className="agent-activity-empty">
+            <p style={{ color: "var(--adobe-neutral-mid)", fontSize: "0.9rem", margin: 0 }}>
+              Awaiting agent interaction...
+            </p>
           </div>
-        ))}
+        ) : (
+          <>
+            {passport.executionHistory
+              .sort((a, b) => a.order - b.order)
+              .map((event) => (
+                <div key={`${event.toolName}-${event.order}`} className="agent-activity-item">
+                  <span className={`agent-activity-status ${event.status === "success" ? "completed" : event.status === "error" ? "error" : ""}`}>
+                    {event.status === "success" ? "✓" : event.status === "error" ? "✕" : "◯"}
+                  </span>
+                  <div className="agent-activity-info">
+                    <p className="agent-activity-text">{event.summary || event.toolName}</p>
+                    {event.status === "error" && event.errorMessage && (
+                      <p className="agent-activity-detail" style={{ color: "var(--warning)" }}>
+                        {event.errorMessage}
+                      </p>
+                    )}
+                    {event.completedAt && (
+                      <p className="agent-activity-detail" style={{ fontSize: "0.75rem", color: "var(--adobe-muted)" }}>
+                        {new Date(event.completedAt).toLocaleTimeString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </>
+        )}
       </div>
     </div>
   );
