@@ -179,10 +179,10 @@ export function FrontDoorSurface() {
   return (
     <div className="frontdoor">
       <section className="frontdoor-hero">
-        <p className="frontdoor-kicker">Adobe Agentic workspace</p>
+        <p className="frontdoor-kicker">Creative Community workspace</p>
         <h1>What are you trying to create?</h1>
         <p>
-          Ask Adobe what to use, what it costs, what runs on your device, and which workflow to start.
+          Find what to use, what it costs, what runs on your device, and which workflow to start.
         </p>
         <label htmlFor="frontdoor-goal" className="frontdoor-goal-label">Your goal</label>
         <textarea
@@ -193,7 +193,7 @@ export function FrontDoorSurface() {
         />
         <div className="frontdoor-hero-actions">
           <button type="button" className="button-link" onClick={composeWorkflow}>
-            Compose Adobe workflow
+            Compose creative workflow
           </button>
           {workflowResult?.status === "ok" ? (
             <button type="button" className="button-link" onClick={continueWithHandoff}>
@@ -212,7 +212,7 @@ export function FrontDoorSurface() {
 
       {workflowResult?.status === "ok" ? (
         <section className="frontdoor-workflow">
-          <h2>Your Adobe workflow</h2>
+          <h2>Your creative workflow</h2>
           <div className="frontdoor-workflow-steps">
             {workflowResult.data.steps.map((step) => (
               <article key={step.capabilityId} className="frontdoor-step-card">
@@ -241,7 +241,7 @@ export function FrontDoorSurface() {
 
       <section className="frontdoor-grid">
         <article className="frontdoor-card">
-          <h2>Why Adobe recommends this</h2>
+          <h2>Why this is recommended</h2>
           {workflowResult?.status === "ok" ? (
             <div className="frontdoor-activity-list">
               {workflowResult.data.steps.map((step) => (
@@ -283,7 +283,7 @@ export function FrontDoorSurface() {
 
       <section className="frontdoor-grid">
         <article className="frontdoor-card">
-          <h2>Adobe Plans</h2>
+          <h2>Plans</h2>
           <p className="small-note">Student · India</p>
           {planSummary ? (
             <>
@@ -334,7 +334,7 @@ export function FrontDoorSurface() {
         </article>
 
         <article className="frontdoor-card">
-          <h2>Find the right Adobe product</h2>
+          <h2>Find the right product</h2>
           <textarea
             className="frontdoor-goal-input"
             style={{ minHeight: 72 }}

@@ -1,10 +1,10 @@
-# Adobe Creative Mission Control (P0)
+# Creative Community — WebMCP Prototype
 
 Core principles:
 - **Discover globally. Execute locally. Resume seamlessly.**
 - **Understand globally. Verify authoritatively. Compose across Adobe. Hand off precisely.**
 
-This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and **Adobe Plans** using synthetic data only.
+This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and plan-selection journeys involving publicly described Adobe product capabilities, using synthetic data only.
 
 ## Architecture (Milestone 1)
 

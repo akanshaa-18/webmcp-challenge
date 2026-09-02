@@ -65,6 +65,12 @@ describe("front door surface", () => {
     });
     await flush();
 
+    expect(container.textContent).toContain("✦ Creative Community");
+    expect(container.textContent).toContain("Creative Community workspace");
+    expect(container.textContent).not.toContain("Adobe Agentic");
+    expect(container.textContent).not.toContain("Adobe Agentic workspace");
+    expect(container.textContent).toContain("Will Premiere Pro run on my Mac?");
+
     const goalInput = container.querySelector<HTMLTextAreaElement>("#frontdoor-goal");
     expect(goalInput).toBeDefined();
     const nextGoal = "Remove background and create instagram post";
@@ -80,7 +86,7 @@ describe("front door surface", () => {
     });
 
     const composeButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Compose Adobe workflow",
+      (button) => button.textContent?.trim() === "Compose creative workflow",
     );
     expect(composeButton).toBeDefined();
     await act(async () => {
@@ -88,7 +94,14 @@ describe("front door surface", () => {
     });
     await flush();
 
-    expect(container.textContent).toContain("Your Adobe workflow");
+    expect(container.textContent).toContain("Your creative workflow");
+    expect(container.textContent).toContain("Why this is recommended");
+    expect(container.textContent).toContain("Plans");
+    expect(container.textContent).toContain("Find the right product");
+    expect(container.textContent).not.toContain("Compose Adobe workflow");
+    expect(container.textContent).not.toContain("Your Adobe workflow");
+    expect(container.textContent).not.toContain("Why Adobe recommends this");
+    expect(container.textContent).not.toContain("Kaftan Adobe Creative Mission Control");
     const text = container.textContent ?? "";
     expect(text.indexOf("Adobe Firefly")).toBeLessThan(text.indexOf("Adobe Express"));
     expect(container.textContent).toContain("https://firefly.adobe.com/");
@@ -126,14 +139,14 @@ describe("front door surface", () => {
     await flush();
 
     const composeButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Compose Adobe workflow",
+      (button) => button.textContent?.trim() === "Compose creative workflow",
     );
     await act(async () => {
       composeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await flush();
 
-    expect(container.textContent).toContain("Adobe Plans");
+    expect(container.textContent).toContain("Plans");
     expect(container.textContent).toContain("Recommended plan:");
     expect(container.textContent).toContain("Regional price:");
     expect(container.textContent).toContain("demo_snapshot");

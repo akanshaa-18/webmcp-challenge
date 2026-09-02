@@ -112,7 +112,7 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
     <div className="surface">
       <header className="hero">
         <p className="small-note">Public destination · Step 2 of 2</p>
-        <h1 className="hero-title">Adobe Express handoff destination</h1>
+        <h1 className="hero-title">Express handoff destination</h1>
         <p className="hero-subtitle">
           This page carries workflow continuity state. Business card creation runs on Adobe Express.
         </p>

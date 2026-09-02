@@ -5,7 +5,7 @@ export const toolManifests: ToolManifest[] = [
     toolName: "public.build_adobe_workflow",
     ownerSurface: "Adobe Agentic Front Door",
     description:
-      "Compose a multi-step Adobe workflow for a user's creative goal using publicly described Adobe capabilities and their dependencies.",
+      "Compose a multi-step creative workflow across supported public product capabilities.",
     inputSchema: {
       type: "object",
       properties: {

@@ -11,7 +11,7 @@ export function UniversalNav() {
   return (
     <header className="mission-chip-shell">
       <div className="mission-chip">
-        <p className="mission-chip-title">✦ Adobe Agentic</p>
+        <p className="mission-chip-title">✦ Creative Community</p>
       </div>
       <nav className="mission-mini-links">
         {[

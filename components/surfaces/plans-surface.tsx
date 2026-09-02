@@ -129,7 +129,7 @@ export function PlansSurface() {
     <div className="plans-surface">
       <section className="plans-hero">
         <p className="small-note">Plans and pricing</p>
-        <h1 className="hero-title">Find the right Creative Cloud plan</h1>
+        <h1 className="hero-title">Find the right plan</h1>
         <p className="hero-subtitle">Choose from Individuals, Business, and Students & Teachers plans.</p>
         <div className="plans-audience-tabs">
           <button className="plans-tab plans-tab-active" type="button">Students & Teachers</button>

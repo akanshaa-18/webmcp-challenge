@@ -132,7 +132,7 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
     <div className="surface">
       <header className="hero">
         <p className="small-note">Public destination · Step 1 of 2</p>
-        <h1 className="hero-title">Adobe Firefly handoff destination</h1>
+        <h1 className="hero-title">Firefly handoff destination</h1>
         <p className="hero-subtitle">
           This page carries structured workflow context only. Creative execution happens in Adobe Firefly.
         </p>

@@ -91,7 +91,7 @@ describe("public destination surfaces", () => {
     await flush();
 
     const text = container.textContent ?? "";
-    expect(text).toContain("Adobe Firefly handoff destination");
+    expect(text).toContain("Firefly handoff destination");
     expect(text).toContain("Context carried into Firefly");
     expect(text).toContain("Intent Passport");
     expect(text).toContain("does not claim local file transfer");
@@ -153,7 +153,7 @@ describe("public destination surfaces", () => {
     await flush();
 
     const text = container.textContent ?? "";
-    expect(text).toContain("Adobe Express handoff destination");
+    expect(text).toContain("Express handoff destination");
     expect(text).toContain("Context carried into Express");
     expect(text).toContain("Intent Passport");
     expect(text).toContain("does not claim binary upload/transfer");

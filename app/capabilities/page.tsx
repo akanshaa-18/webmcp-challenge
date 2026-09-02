@@ -36,11 +36,15 @@ export default function CapabilitiesPage() {
         </thead>
         <tbody>
           {toolManifests.map((manifest) => {
+            const ownerSurface =
+              manifest.ownerSurface === "Adobe Agentic Front Door"
+                ? "Creative Community"
+                : manifest.ownerSurface;
             return (
               <tr key={manifest.toolName}>
                 <td>{manifest.toolName}</td>
                 <td>{runtimeToolNameForManifest(manifest.toolName)}</td>
-                <td>{manifest.ownerSurface}</td>
+                <td>{ownerSurface}</td>
                 <td>{manifest.description}</td>
                 <td>{manifest.destinationRoute ?? manifest.destinationUrl ?? "n/a"}</td>
                 <td>{manifest.readOnly ? "read-only" : "mutating"}</td>

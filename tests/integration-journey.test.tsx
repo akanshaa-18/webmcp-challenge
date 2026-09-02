@@ -94,7 +94,7 @@ describe("integration journey checkpoint", () => {
     expect(workflow.status).toBe("ok");
 
     const composeButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim() === "Compose Adobe workflow",
+      (button) => button.textContent?.trim() === "Compose creative workflow",
     );
     expect(composeButton).toBeDefined();
     await act(async () => {

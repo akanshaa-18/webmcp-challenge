@@ -56,7 +56,7 @@ describe("plans surface ui cleanup", () => {
 
     const text = container.textContent ?? "";
     expect(text).toContain("Plans and pricing");
-    expect(text).toContain("Find the right Creative Cloud plan");
+    expect(text).toContain("Find the right plan");
 
     expect(text).not.toContain("Meera");
     expect(text).not.toContain("Bangalore");

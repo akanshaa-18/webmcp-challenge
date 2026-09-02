@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kaftan Adobe Creative Mission Control",
+  title: "Creative Community — WebMCP Prototype",
   description: "Discover globally. Execute locally. Resume seamlessly.",
 };
 
