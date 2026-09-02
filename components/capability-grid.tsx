@@ -1,11 +1,14 @@
 "use client";
 
+import Image from "next/image";
+
 interface Capability {
   id: string;
   label: string;
   title: string;
-  products: Array<{ name: string; initials: string; color: string }>;
+  products: Array<{ name: string; initials: string; color: string; icon?: string }>;
   gridSpan?: "tall" | "wide" | "normal";
+  bgImage?: string;
 }
 
 const CAPABILITY_GROUPS: Capability[] = [
@@ -14,8 +17,8 @@ const CAPABILITY_GROUPS: Capability[] = [
     label: "Generate",
     title: "Generative Creation",
     products: [
-      { name: "Firefly", initials: "Ff", color: "#FF4B4B" },
-      { name: "Photoshop", initials: "Ps", color: "#001AFF" },
+      { name: "Firefly", initials: "Ff", color: "#FF4B4B", icon: "/assets/adobe/firefly-icon.svg" },
+      { name: "Photoshop", initials: "Ps", color: "#001AFF", icon: "/assets/adobe/photoshop-icon.svg" },
     ],
     gridSpan: "wide",
   },
@@ -24,8 +27,8 @@ const CAPABILITY_GROUPS: Capability[] = [
     label: "Edit",
     title: "Professional Editing",
     products: [
-      { name: "Photoshop", initials: "Ps", color: "#001AFF" },
-      { name: "Premiere Pro", initials: "Pr", color: "#9933FF" },
+      { name: "Photoshop", initials: "Ps", color: "#001AFF", icon: "/assets/adobe/photoshop-icon.svg" },
+      { name: "Premiere Pro", initials: "Pr", color: "#9933FF", icon: "/assets/adobe/premiere-icon.svg" },
     ],
   },
   {
@@ -33,30 +36,30 @@ const CAPABILITY_GROUPS: Capability[] = [
     label: "Design",
     title: "Vector & Layout",
     products: [
-      { name: "Illustrator", initials: "Ai", color: "#FF9B00" },
-      { name: "Express", initials: "Ex", color: "#FF0099" },
+      { name: "Illustrator", initials: "Ai", color: "#FF9B00", icon: "/assets/adobe/illustrator-icon.svg" },
+      { name: "Express", initials: "Ex", color: "#FF0099", icon: "/assets/adobe/express-icon.svg" },
     ],
   },
   {
     id: "publish",
     label: "Publish",
     title: "Social & Web",
-    products: [{ name: "Express", initials: "Ex", color: "#FF0099" }],
+    products: [{ name: "Express", initials: "Ex", color: "#FF0099", icon: "/assets/adobe/express-icon.svg" }],
     gridSpan: "tall",
   },
   {
     id: "video",
     label: "Video",
     title: "Motion & Editing",
-    products: [{ name: "Premiere Pro", initials: "Pr", color: "#9933FF" }],
+    products: [{ name: "Premiere Pro", initials: "Pr", color: "#9933FF", icon: "/assets/adobe/premiere-icon.svg" }],
   },
   {
     id: "enhance",
     label: "Enhance",
     title: "Image Enhancement",
     products: [
-      { name: "Photoshop", initials: "Ps", color: "#001AFF" },
-      { name: "Firefly", initials: "Ff", color: "#FF4B4B" },
+      { name: "Photoshop", initials: "Ps", color: "#001AFF", icon: "/assets/adobe/photoshop-icon.svg" },
+      { name: "Firefly", initials: "Ff", color: "#FF4B4B", icon: "/assets/adobe/firefly-icon.svg" },
     ],
   },
 ];
@@ -76,12 +79,22 @@ export function CapabilityGrid() {
             <div className="capability-products">
               {capability.products.map((product) => (
                 <div key={product.name} className="capability-product-mark">
-                  <div
-                    className="product-mark-mini"
-                    style={{ backgroundColor: product.color }}
-                  >
-                    {product.initials}
-                  </div>
+                  {product.icon ? (
+                    <Image
+                      src={product.icon}
+                      alt={product.name}
+                      width={24}
+                      height={24}
+                      className="product-icon-mini"
+                    />
+                  ) : (
+                    <div
+                      className="product-mark-mini"
+                      style={{ backgroundColor: product.color }}
+                    >
+                      {product.initials}
+                    </div>
+                  )}
                   <span>{product.name}</span>
                 </div>
               ))}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useMission } from "@/components/mission-provider";
 import { plansFixture } from "@/lib/fixtures";
@@ -162,23 +163,42 @@ export function PremiumPlansSection() {
         </>
       ) : (
         <div className="plans-catalog">
-          {plansFixture.map((plan) => (
-            <div key={plan.id} className="plans-catalog-card">
-              <p className="plans-catalog-badge">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
-              <h3 className="plans-catalog-name">{plan.name}</h3>
-              <p className="plans-catalog-price">
-                {catalogPrices[plan.id]?.status === "ok"
-                  ? catalogPrices[plan.id].formattedPrice
-                  : "—"}
-              </p>
-              <p className="plans-catalog-period">/month · {plan.supportedRegions[0]}</p>
-              <ul className="plans-catalog-apps">
-                {plan.includedApps.slice(0, 3).map((app) => (
-                  <li key={app}>{app}</li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {plansFixture.map((plan) => {
+            const planIcons: Record<string, { src: string; alt: string }> = {
+              "photo_plus": { src: "/assets/adobe/photoshop-icon.svg", alt: "Photoshop" },
+              "illustrator_plus": { src: "/assets/adobe/illustrator-icon.svg", alt: "Illustrator" },
+              "creative_cloud": { src: "/assets/adobe/creative-community.jpg", alt: "Creative Cloud" },
+            };
+            const planIcon = planIcons[plan.id];
+            return (
+              <div key={plan.id} className="plans-catalog-card">
+                {planIcon && (
+                  <div className="plans-catalog-icon-wrapper">
+                    <Image
+                      src={planIcon.src}
+                      alt={planIcon.alt}
+                      width={48}
+                      height={48}
+                      className="plans-catalog-icon"
+                    />
+                  </div>
+                )}
+                <p className="plans-catalog-badge">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
+                <h3 className="plans-catalog-name">{plan.name}</h3>
+                <p className="plans-catalog-price">
+                  {catalogPrices[plan.id]?.status === "ok"
+                    ? catalogPrices[plan.id].formattedPrice
+                    : "—"}
+                </p>
+                <p className="plans-catalog-period">/month · {plan.supportedRegions[0]}</p>
+                <ul className="plans-catalog-apps">
+                  {plan.includedApps.slice(0, 3).map((app) => (
+                    <li key={app}>{app}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
       )}
 

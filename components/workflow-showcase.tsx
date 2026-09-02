@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMission } from "@/components/mission-provider";
 
 interface WorkflowStep {
@@ -59,41 +60,72 @@ export function WorkflowShowcase() {
     ? { id: "agent-workflow", description: passport.recommendedWorkflow || "Composed workflow", steps: workflowSteps }
     : DEFAULT_WORKFLOW;
 
+  const getProductIcon = (productName: string) => {
+    const iconMap: Record<string, string> = {
+      Photoshop: "/assets/adobe/photoshop-icon.svg",
+      Illustrator: "/assets/adobe/illustrator-icon.svg",
+      Firefly: "/assets/adobe/firefly-icon.svg",
+      Express: "/assets/adobe/express-icon.svg",
+      Premiere: "/assets/adobe/premiere-icon.svg",
+    };
+    return iconMap[productName];
+  };
+
   return (
     <section id="workflows" className="workflow-container">
+      <div className="workflow-background">
+        <Image
+          src="/assets/adobe/creative-community.jpg"
+          alt="Creative community"
+          fill
+          quality={75}
+          sizes="(max-width: 768px) 100vw, 50vw"
+          style={{ objectFit: "cover" }}
+        />
+        <div className="workflow-background-overlay"></div>
+      </div>
       <h2 className="workflow-heading">
         {passport.actualWorkflowSteps ? "Your Composed Workflow" : "Cross-Product Workflow"}
       </h2>
       <div className="workflow-visualization">
         <div className="workflow-inner">
           <div className="workflow-steps-grid">
-            {workflow.steps.map((step, index) => (
-              <div key={index}>
-                {index > 0 && <div className="workflow-connector"></div>}
-                <div className="workflow-step">
-                  <div className="workflow-step-mark" style={{ backgroundColor: step.color }}>
-                    {step.initials}
-                  </div>
-                  <h3 className="workflow-step-title">{step.productName}</h3>
-                  <p className="workflow-step-action">{step.task}</p>
-                  {step.receives && (
-                    <div className="workflow-step-detail">
-                      <span className="workflow-detail-label">Receives:</span>
-                      <span>{step.receives}</span>
+            {workflow.steps.map((step, index) => {
+              const iconPath = getProductIcon(step.productName);
+              return (
+                <div key={index}>
+                  {index > 0 && <div className="workflow-connector"></div>}
+                  <div className="workflow-step">
+                    <div className="workflow-step-icon-container">
+                      {iconPath ? (
+                        <Image src={iconPath} alt={step.productName} width={32} height={32} />
+                      ) : (
+                        <div className="workflow-step-mark" style={{ backgroundColor: step.color }}>
+                          {step.initials}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className="workflow-step-detail">
-                    <span className="workflow-detail-label">Produces:</span>
-                    <span>{step.produces}</span>
+                    <h3 className="workflow-step-title">{step.productName}</h3>
+                    <p className="workflow-step-action">{step.task}</p>
+                    {step.receives && (
+                      <div className="workflow-step-detail">
+                        <span className="workflow-detail-label">Receives:</span>
+                        <span>{step.receives}</span>
+                      </div>
+                    )}
+                    <div className="workflow-step-detail">
+                      <span className="workflow-detail-label">Produces:</span>
+                      <span>{step.produces}</span>
+                    </div>
+                    {step.destinationUrl && (
+                      <a href={step.destinationUrl} target="_blank" rel="noopener noreferrer" className="workflow-step-action" style={{ marginTop: "8px", fontSize: "0.85rem" }}>
+                        Start in {step.productName} →
+                      </a>
+                    )}
                   </div>
-                  {step.destinationUrl && (
-                    <a href={step.destinationUrl} target="_blank" rel="noopener noreferrer" className="workflow-step-action" style={{ marginTop: "8px", fontSize: "0.85rem" }}>
-                      Start in {step.productName} →
-                    </a>
-                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <p className="workflow-description">{workflow.description}</p>
         </div>
