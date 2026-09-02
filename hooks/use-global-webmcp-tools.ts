@@ -9,7 +9,6 @@ import {
   toolManifests,
 } from "@/lib/capability-registry";
 import { toolError } from "@/lib/errors";
-import { userFixture } from "@/lib/fixtures";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
   checkDeviceCompatibility,
@@ -32,21 +31,9 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
   const router = useRouter();
   const [tools] = useState(() => [
     {
-      name: "get_user_region",
-      description: "Get the user's persisted Adobe region context for localized decisions.",
-      annotations: { readOnlyHint: true },
-      execute: () => ({
-        status: "ok",
-        data: {
-          region: userFixture.region,
-          city: userFixture.city,
-          student: userFixture.student,
-        },
-      }),
-    },
-    {
       name: "get_current_adobe_context",
-      description: "Get active Adobe route, mission, project, and current asset context.",
+      description:
+        "Get active Adobe route, mission, project, and current asset context. region/audience reflect only what an agent has explicitly supplied earlier in this session -- they are null when no legitimate context has been provided yet, never a fabricated default.",
       annotations: { readOnlyHint: true },
       execute: () => {
         const runtime = getMissionRuntime();
@@ -60,8 +47,8 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             intent: {
               id: runtime.intentPassport.id,
               userGoal: runtime.intentPassport.userGoal,
-              region: runtime.intentPassport.region ?? userFixture.region,
-              audience: runtime.intentPassport.audience ?? (userFixture.student ? "student" : "individual"),
+              region: runtime.intentPassport.region ?? null,
+              audience: runtime.intentPassport.audience ?? null,
               requirements: runtime.intentPassport.requirements,
               discoveredCapabilities: runtime.intentPassport.discoveredCapabilities,
               selectedProducts: runtime.intentPassport.selectedProducts,
@@ -83,10 +70,12 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
       execute: () => ({
         status: "ok",
         data: {
-          manifests: toolManifests.map((manifest) => ({
-            ...manifest,
-            runtimeToolName: runtimeToolNameForManifest(manifest.toolName),
-          })),
+          manifests: toolManifests
+            .filter((manifest) => manifest.audience === "public")
+            .map((manifest) => ({
+              ...manifest,
+              runtimeToolName: runtimeToolNameForManifest(manifest.toolName),
+            })),
           namingConvention:
             "Registry uses namespaced manifest IDs (for example public.build_adobe_workflow); WebMCP runtime tools are registered by route as unprefixed names (for example build_adobe_workflow).",
         },
@@ -107,10 +96,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         }
         const runtime = getMissionRuntime();
         const result = findToolsForTask(input.task);
-        if (!result.recommendedTool) {
-          return toolError("UNKNOWN_CAPABILITY", "No matching capability found for this task.");
-        }
-        if (runtime) {
+        if (runtime && result.recommendedTool) {
           runtime.updateIntentPassport((passport) => {
             const recommended = result.recommendedTool?.toolName;
             const nextDiscovered = recommended && !passport.discoveredCapabilities.includes(recommended)
@@ -128,11 +114,11 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         return {
           status: "ok",
           data: {
-            recommendedTool: result.recommendedTool.toolName,
-            ownerSurface: result.recommendedTool.ownerSurface,
+            recommendedTool: result.recommendedTool?.toolName ?? null,
+            ownerSurface: result.recommendedTool?.ownerSurface ?? null,
             destination:
-              result.recommendedTool.destinationRoute ?? result.recommendedTool.destinationUrl ?? null,
-            requiredContext: result.recommendedTool.requiredContext,
+              result.recommendedTool?.destinationRoute ?? result.recommendedTool?.destinationUrl ?? null,
+            requiredContext: result.recommendedTool?.requiredContext ?? [],
             alternatives: result.alternatives.map((tool) => tool.toolName),
           },
         };
@@ -352,6 +338,9 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         if (!capability) {
           return toolError("UNKNOWN_CAPABILITY", `Unknown capability: ${input.toolName}`);
         }
+        if (capability.audience !== "public") {
+          return toolError("UNKNOWN_CAPABILITY", `Unknown capability: ${input.toolName}`);
+        }
         if (runtime) {
           runtime.updateIntentPassport((passport) => ({
             ...passport,
@@ -483,6 +472,111 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             destinationRoute,
             intent: runtime.intentPassport,
             handoffTrail: runtime.intentPassport.handoffTrail,
+          },
+        };
+      },
+    },
+    {
+      name: "get_checkout_link",
+      description: "Return Adobe checkout URL for a selected plan with the chosen action (buy/trial). Call after user selects a plan from compare_plan_options.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          planId: { type: "string", description: "Plan ID from compare_plan_options result" },
+          action: { type: "string", enum: ["buy", "trial"], description: '"buy" to purchase, "trial" for free trial' },
+          region: { type: "string", description: "Optional: region/country code (e.g. IN, US). If omitted, uses session region from prior plan selection." },
+        },
+        required: ["planId", "action"],
+      },
+      annotations: { readOnlyHint: false },
+      execute: async (input: { planId?: string; action?: string; region?: string }) => {
+        if (!input?.planId || typeof input.planId !== "string") {
+          return toolError(
+            "MISSING_PLAN_ID",
+            "A planId is required. Use a plan ID from the plans array returned by compare_plan_options.",
+          );
+        }
+        if (input.action !== "buy" && input.action !== "trial") {
+          return toolError("INVALID_ACTION", 'action must be "buy" or "trial".');
+        }
+
+        const runtime = getMissionRuntime();
+        let resolvedRegion = input.region;
+
+        if (!resolvedRegion) {
+          if (!runtime) {
+            return toolError(
+              "MISSING_REGION",
+              "A region is required. Either pass region explicitly, or call compare_plan_options first to establish session region.",
+            );
+          }
+          resolvedRegion = runtime.intentPassport.region;
+        }
+
+        if (!resolvedRegion) {
+          return toolError(
+            "MISSING_REGION",
+            "A region/country code is required (e.g. IN, US). Pass explicitly or establish via prior compare_plan_options call.",
+          );
+        }
+
+        const { resolvePlanPrice, extractPlanOsi } = await import("@/lib/regional-pricing");
+        const priceResult = await resolvePlanPrice({
+          planId: input.planId,
+          country: resolvedRegion,
+        });
+
+        if (priceResult.status !== "ok") {
+          return toolError(
+            "PLAN_NOT_AVAILABLE",
+            `Plan ${input.planId} is not available in ${resolvedRegion}. Reason: ${priceResult.data.reason}`,
+          );
+        }
+
+        if (input.action === "trial") {
+          return {
+            status: "ok",
+            data: {
+              planId: input.planId,
+              action: input.action,
+              region: resolvedRegion,
+              trialAvailable: null,
+              message: "Trial availability not verified from discovery data. User should contact Adobe sales or visit product page.",
+            },
+          };
+        }
+
+        const osiResult = await extractPlanOsi(input.planId, resolvedRegion);
+        if (osiResult.status !== "ok") {
+          return toolError(
+            "OSI_EXTRACTION_FAILED",
+            `Could not extract checkout identifier for ${input.planId}: ${osiResult.reason}`,
+          );
+        }
+
+        const countryParam = resolvedRegion.toUpperCase();
+        const langParam = { IN: "en", US: "en", GB: "en" }[countryParam] || "en";
+        const checkoutUrl = `https://commerce.adobe.com/store/commitment?items[0][id]=${osiResult.osi}&cli=adobe_com&ctx=fp&co=${countryParam}&lang=${langParam}`;
+
+        if (runtime) {
+          runtime.updateIntentPassport((passport) => ({
+            ...passport,
+            selectedDestination: checkoutUrl,
+            discoveredCapabilities: passport.discoveredCapabilities.includes("adobe_plans.checkout")
+              ? passport.discoveredCapabilities
+              : [...passport.discoveredCapabilities, "adobe_plans.checkout"],
+          }));
+        }
+
+        return {
+          status: "ok",
+          data: {
+            planId: input.planId,
+            action: input.action,
+            region: resolvedRegion,
+            checkoutUrl,
+            currency: priceResult.data.currency,
+            osi: osiResult.osi,
           },
         };
       },

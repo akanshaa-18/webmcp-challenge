@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import { findToolsForTask, runtimeToolNameForManifest } from "@/lib/capability-registry";
 
 describe("capability matching", () => {
-  it("recommends firefly.change_background for background tasks", () => {
+  it("does not recommend legacy tools; returns null for tasks with no public equivalent", () => {
     const result = findToolsForTask("change image background");
-    expect(result.recommendedTool?.toolName).toBe("firefly.change_background");
+    expect(result.recommendedTool).toBeNull();
+    expect(result.alternatives.length).toBeGreaterThan(0);
+    expect(result.alternatives.every((tool) => tool.audience === "public")).toBe(true);
   });
 
   it("discovers plans capability for pricing/plan tasks", () => {
@@ -60,6 +62,21 @@ describe("capability matching", () => {
 
   it("returns no default recommendation for unrelated tasks", () => {
     expect(findToolsForTask("organize my calendar").recommendedTool).toBeNull();
+  });
+
+  it("ensures all alternatives are public tools only (no legacy-private exposure)", () => {
+    const prompts = [
+      "find the right Adobe plan",
+      "Which Adobe app should I use to remove a background?",
+      "Will Premiere run on macOS?",
+      "What can Firefly do?",
+      "what Adobe workflow should I use",
+      "organize my calendar",
+    ];
+    for (const prompt of prompts) {
+      const result = findToolsForTask(prompt);
+      expect(result.alternatives.every((tool) => tool.audience === "public")).toBe(true);
+    }
   });
 
   it("maps namespaced registry tool IDs to runtime WebMCP tool names", () => {

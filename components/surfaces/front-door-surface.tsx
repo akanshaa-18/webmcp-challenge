@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { IntentPassportCard } from "@/components/intent-passport-card";
 import { useMission } from "@/components/mission-provider";
 import { ToolRegistrationStatus } from "@/components/tool-registration-status";
 import { WorkflowProgress } from "@/components/workflow-progress";
 import { describeCapability } from "@/lib/capability-registry";
-import { plansFixture, userFixture } from "@/lib/fixtures";
 import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
@@ -15,7 +14,6 @@ import {
   getProductCapabilities,
   getProductSystemRequirements,
 } from "@/lib/public-intelligence";
-import { comparePlanOptions } from "@/lib/plans";
 import { buildAdobeWorkflow } from "@/lib/workflow-composer";
 
 type WorkflowState = ReturnType<typeof buildAdobeWorkflow>;
@@ -35,69 +33,6 @@ export function FrontDoorSurface() {
   const [deviceMemory, setDeviceMemory] = useState<string>("");
   const [deviceStorage, setDeviceStorage] = useState<string>("");
   const [showWorkflowDetails, setShowWorkflowDetails] = useState(false);
-  const [planSummaryState, setPlanSummaryState] = useState<{
-    status: "loading" | "ok" | "unavailable";
-    plan?: { planId: string; name: string };
-    pricing?: {
-      country: string;
-      locale: string;
-      currency: string;
-      amount: number;
-      formattedPrice: string;
-      billingPeriod: string;
-      dataSource: string;
-    };
-  }>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadPlanSummary = async () => {
-      const recommendation = await comparePlanOptions(plansFixture, userFixture, {
-        requirements: ["photo editing", "business card design", "background replacement"],
-        region: userFixture.region,
-        student: userFixture.student,
-      });
-      if (cancelled) return;
-      if (recommendation.status !== "ok" || !recommendation.data.recommendedPlan) {
-        setPlanSummaryState({ status: "unavailable" });
-        return;
-      }
-
-      const pricing = recommendation.data.recommendedPlan.pricing;
-      if (!pricing || !("formattedPrice" in pricing) || !("amount" in pricing)) {
-        setPlanSummaryState({ status: "unavailable" });
-        return;
-      }
-
-      setPlanSummaryState({
-        status: "ok",
-        plan: {
-          planId: recommendation.data.recommendedPlan.planId,
-          name: recommendation.data.recommendedPlan.name,
-        },
-        pricing: {
-          country: pricing.country,
-          locale: pricing.locale,
-          currency: pricing.currency,
-          amount: pricing.amount,
-          formattedPrice: pricing.formattedPrice,
-          billingPeriod: pricing.billingPeriod,
-          dataSource: pricing.dataSource,
-        },
-      });
-    };
-
-    loadPlanSummary().catch(() => {
-      if (!cancelled) {
-        setPlanSummaryState({ status: "unavailable" });
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const productDiscovery = (() => {
     const recommendation = findProductForTask(productPrompt);
@@ -337,23 +272,10 @@ export function FrontDoorSurface() {
       <section className="frontdoor-grid">
         <article className="frontdoor-card">
           <h2>Plans</h2>
-          <p className="small-note">Student · India</p>
-          {planSummaryState.status === "loading" ? (
-            <p className="small-note">Loading live price…</p>
-          ) : null}
-          {planSummaryState.status === "ok" && planSummaryState.plan && planSummaryState.pricing ? (
-            <>
-              <p><strong>Recommended plan:</strong> {planSummaryState.plan.planId}</p>
-              <p>
-                <strong>Regional price:</strong> {planSummaryState.pricing.formattedPrice}/
-                {planSummaryState.pricing.billingPeriod}
-              </p>
-              <p className="small-note">Data: {planSummaryState.pricing.dataSource}</p>
-            </>
-          ) : null}
-          {planSummaryState.status === "unavailable" ? (
-            <p className="small-note">Plan recommendation is unavailable.</p>
-          ) : null}
+          <p className="small-note">
+            Tell an agent your requirements, country, and whether you&apos;re a student to get a live-priced
+            recommendation on the Plans page.
+          </p>
           <a className="frontdoor-text-link" href="/plans">Explore plans</a>
         </article>
 

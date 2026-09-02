@@ -103,7 +103,7 @@ export const toolManifests: ToolManifest[] = [
   {
     toolName: "adobe_plans.get_regional_plans",
     ownerSurface: "Adobe Plans",
-    description: "Return regional demo Adobe plans filtered by audience and location context.",
+    description: "Return demo Adobe plan metadata filtered by an explicit or session region and/or catalog audience.",
     inputSchema: {
       type: "object",
       properties: {
@@ -111,7 +111,7 @@ export const toolManifests: ToolManifest[] = [
         audience: { type: "string" },
       },
     },
-    requiredContext: ["user.region", "user.student"],
+    requiredContext: ["region (optional: explicit or session)"],
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,
@@ -155,17 +155,19 @@ export const toolManifests: ToolManifest[] = [
   {
     toolName: "adobe_plans.compare_plan_options",
     ownerSurface: "Adobe Plans",
-    description: "Compare plans against requirements and return the lowest-cost qualifying option.",
+    description:
+      "Compare plans against requirements and return the lowest-cost qualifying option using live regional pricing. Requires a region (explicit or session); accepts audience (preferred) or the legacy student boolean.",
     inputSchema: {
       type: "object",
       properties: {
         requirements: { type: "array", items: { type: "string" } },
         region: { type: "string" },
+        audience: { type: "string", enum: ["student", "individual"] },
         student: { type: "boolean" },
       },
       required: ["requirements"],
     },
-    requiredContext: ["requirements", "user.region", "user.student"],
+    requiredContext: ["requirements", "region (explicit or session)", "audience or student (explicit or session, optional)"],
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,
@@ -304,6 +306,7 @@ export function findToolsForTask(task: string): {
   alternatives: ToolManifest[];
 } {
   const normalizedTask = task.toLowerCase();
+  const publicTools = toolManifests.filter((tool) => tool.audience === "public");
 
   if (
     normalizedTask.includes("workflow") ||
@@ -313,7 +316,7 @@ export function findToolsForTask(task: string): {
     const recommendedTool = describeCapability("public.build_adobe_workflow");
     return {
       recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.build_adobe_workflow"),
+      alternatives: publicTools.filter((tool) => tool.toolName !== "public.build_adobe_workflow"),
     };
   }
 
@@ -326,7 +329,7 @@ export function findToolsForTask(task: string): {
     const recommendedTool = describeCapability("public.find_product_for_task");
     return {
       recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.find_product_for_task"),
+      alternatives: publicTools.filter((tool) => tool.toolName !== "public.find_product_for_task"),
     };
   }
 
@@ -340,7 +343,7 @@ export function findToolsForTask(task: string): {
     const recommendedTool = describeCapability("public.get_product_capabilities");
     return {
       recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.get_product_capabilities"),
+      alternatives: publicTools.filter((tool) => tool.toolName !== "public.get_product_capabilities"),
     };
   }
 
@@ -356,8 +359,8 @@ export function findToolsForTask(task: string): {
     return {
       recommendedTool,
       alternatives: [
-        ...toolManifests.filter((tool) => tool.toolName === "public.get_product_system_requirements"),
-        ...toolManifests.filter((tool) => tool.toolName !== "public.check_device_compatibility"),
+        ...publicTools.filter((tool) => tool.toolName === "public.get_product_system_requirements"),
+        ...publicTools.filter((tool) => tool.toolName !== "public.check_device_compatibility"),
       ],
     };
   }
@@ -366,33 +369,9 @@ export function findToolsForTask(task: string): {
     const recommendedTool = describeCapability("public.get_product_system_requirements");
     return {
       recommendedTool,
-      alternatives: toolManifests.filter(
+      alternatives: publicTools.filter(
         (tool) => tool.toolName !== "public.get_product_system_requirements",
       ),
-    };
-  }
-
-  if (normalizedTask.includes("background")) {
-    const recommendedTool = describeCapability("firefly.change_background");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "firefly.change_background"),
-    };
-  }
-
-  if (normalizedTask.includes("business card")) {
-    const recommendedTool = describeCapability("express.create_business_card");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "express.create_business_card"),
-    };
-  }
-
-  if (normalizedTask.includes("duplicate") || normalizedTask.includes("cleanup")) {
-    const recommendedTool = describeCapability("cc_home.find_duplicates");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "cc_home.find_duplicates"),
     };
   }
 
@@ -406,12 +385,16 @@ export function findToolsForTask(task: string): {
     const recommendedTool = describeCapability("adobe_plans.compare_plan_options");
     return {
       recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "adobe_plans.compare_plan_options"),
+      alternatives: publicTools.filter((tool) => tool.toolName !== "adobe_plans.compare_plan_options"),
     };
   }
 
+  // Tasks that match ONLY legacy-private tools (background, business card, duplicate cleanup)
+  // do not return a legacy recommendation; return null instead.
+  // Public discovery should not expose legacy tools as fallbacks.
+
   return {
     recommendedTool: null,
-    alternatives: toolManifests,
+    alternatives: publicTools,
   };
 }

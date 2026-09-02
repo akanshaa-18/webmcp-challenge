@@ -220,6 +220,39 @@ async function fetchWcsOffer(
   return fetchImpl(url, { method: "GET", signal });
 }
 
+export async function extractPlanOsi(
+  planId: string,
+  country: string,
+  fetchImpl?: FetchLike,
+): Promise<{ status: "ok"; osi: string } | { status: "error"; reason: string }> {
+  const resolvedCountry = (country || "").toUpperCase();
+  const resolvedLocale = resolveLocale(resolvedCountry);
+  if (!resolvedLocale) {
+    return { status: "error", reason: `unsupported_region:${resolvedCountry}` };
+  }
+
+  const fragmentId = PLAN_TO_MAS_FRAGMENT_ID[planId];
+  if (!fragmentId) {
+    return { status: "error", reason: `fragment_unavailable:${planId}` };
+  }
+
+  const url = `${MAS_FRAGMENT_ENDPOINT}?ids=${fragmentId}&locale=${resolvedLocale}`;
+  try {
+    const response = await (fetchImpl || fetch)(url);
+    if (!response.ok) {
+      return { status: "error", reason: `mas_upstream_error:${response.status}` };
+    }
+    const json = await response.json();
+    const osi = extractOsi(json);
+    if (!osi) {
+      return { status: "error", reason: "osi_not_found_in_fragment" };
+    }
+    return { status: "ok", osi };
+  } catch (e) {
+    return { status: "error", reason: `fetch_failed:${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
 export async function resolvePlanPrice(
   input: ResolvePriceInput,
   options: ResolvePriceOptions = {},

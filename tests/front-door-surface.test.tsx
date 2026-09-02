@@ -137,7 +137,7 @@ describe("front door surface", () => {
     });
   });
 
-  it("persists intent passport and shows plans/compatibility summaries using live pricing", async () => {
+  it("persists intent passport and shows a neutral Plans prompt (no fabricated personalized recommendation)", async () => {
     registerTools();
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -156,9 +156,13 @@ describe("front door surface", () => {
     await flush();
 
     expect(container.textContent).toContain("Plans");
-    expect(container.textContent).toContain("Recommended plan:");
-    expect(container.textContent).toContain("Regional price:");
-    expect(container.textContent).toContain("live_regional_pricing");
+    // The front door must not silently run a personalized recommendation
+    // pretending the visitor is India + student (Phase 2A).
+    expect(container.textContent).not.toContain("Recommended plan:");
+    expect(container.textContent).not.toContain("Student · India");
+    expect(container.textContent).toContain(
+      "Tell an agent your requirements, country, and whether you're a student",
+    );
     expect(container.textContent).toContain("Device compatibility");
     expect(container.textContent).toContain("More device information needed.");
     expect(container.textContent).toContain("public_reference_snapshot");

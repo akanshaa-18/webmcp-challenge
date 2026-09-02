@@ -43,10 +43,8 @@ export interface DeletionApprovalRequest {
 export interface Plan {
   id: string;
   name: string;
-  region: string;
+  supportedRegions: string[];
   audience: string;
-  price: number;
-  currency: string;
   billingPeriod: string;
   includedApps: string[];
   capabilities: string[];

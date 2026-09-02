@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import { ToolRegistrationStatus } from "@/components/tool-registration-status";
 import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
 import { useWebMcpTools } from "@/hooks/use-webmcp-tools";
-import { plansFixture, userFixture } from "@/lib/fixtures";
-import { comparePlanOptions, getPlanCapabilities, getPlanPrice, getRegionalPlans } from "@/lib/plans";
+import { plansFixture } from "@/lib/fixtures";
+import { getMissionRuntime } from "@/lib/mission-runtime";
+import {
+  comparePlanOptions,
+  getPlanCapabilities,
+  getPlanPrice,
+  getRegionalPlans,
+  SessionContext,
+} from "@/lib/plans";
 import { toolError } from "@/lib/errors";
 
 interface PriceViewState {
@@ -17,29 +24,35 @@ interface PriceViewState {
   reason?: string;
 }
 
+function readSessionContext(): SessionContext {
+  const runtime = getMissionRuntime();
+  return {
+    region: runtime?.intentPassport.region,
+    audience: runtime?.intentPassport.audience,
+  };
+}
+
 export function PlansSurface() {
   const [lastToolOutput, setLastToolOutput] = useState<string>("No tool output yet.");
   const [priceStateByPlan, setPriceStateByPlan] = useState<Record<string, PriceViewState>>(
-    plansFixture
-      .filter((plan) => plan.region === userFixture.region)
-      .reduce<Record<string, PriceViewState>>((acc, plan) => {
-        acc[plan.id] = { status: "loading" };
-        return acc;
-      }, {}),
+    plansFixture.reduce<Record<string, PriceViewState>>((acc, plan) => {
+      acc[plan.id] = { status: "loading" };
+      return acc;
+    }, {}),
   );
   const globalStatus = useGlobalWebMcpTools("Adobe Plans", "/plans");
 
   useEffect(() => {
     let cancelled = false;
-    const relevantPlans = plansFixture.filter((plan) => plan.region === userFixture.region);
 
+    // Catalog browse view: each plan is priced using its OWN first declared
+    // supported region (plan.supportedRegions[0]), not a guess about the
+    // visitor. This is plan metadata, not user context, so it never
+    // fabricates who/where the visitor is.
     const load = async () => {
       const resolved = await Promise.all(
-        relevantPlans.map(async (plan) => {
-          const result = await getPlanPrice(plansFixture, userFixture, {
-            planId: plan.id,
-            region: userFixture.region,
-          });
+        plansFixture.map(async (plan) => {
+          const result = await getPlanPrice(plansFixture, { planId: plan.id, region: plan.supportedRegions[0] });
           return { planId: plan.id, result };
         }),
       );
@@ -86,23 +99,30 @@ export function PlansSurface() {
     {
       name: "get_regional_plans",
       description:
-        "Get structured Adobe plan options by region and audience from demo plan data for WebMCP prototype.",
+        "Get structured Adobe plan metadata (apps, capabilities, credits, eligibility) filtered by region and/or catalog audience. Does not return numeric price or currency -- use get_plan_price or compare_plan_options for that.",
       annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
         properties: {
           region: {
             type: "string",
-            description: "Optional. Defaults to Meera's region from persisted user context.",
+            description:
+              "Optional. Country/region code (e.g. \"IN\") extracted from the user's request. If omitted, reuses a region the user already gave earlier in this session; if none is available, plans are returned unfiltered by region rather than assuming one.",
           },
           audience: {
             type: "string",
-            description: "Optional. Example values: student, individual, professional.",
+            description:
+              "Optional. Filters by the PLAN's own catalog audience label (example values: student, individual, professional). This filters plan metadata -- it does not assert who the current user is.",
           },
         },
       },
       execute: (input: { region?: string; audience?: string }) => {
-        const result = getRegionalPlans(plansFixture, userFixture, input ?? {});
+        const sessionContext = readSessionContext();
+        const result = getRegionalPlans(plansFixture, input ?? {}, sessionContext);
+        if (input?.region) {
+          const runtime = getMissionRuntime();
+          runtime?.updateIntentPassport((passport) => ({ ...passport, region: input.region }));
+        }
         setLastToolOutput(JSON.stringify(result.data, null, 2));
         return result;
       },
@@ -132,7 +152,7 @@ export function PlansSurface() {
     {
       name: "get_plan_price",
       description:
-        "Get regional plan price from live regional pricing data (MAS fragment → offer selector → regional commerce response).",
+        "Get regional plan price from live regional pricing data (MAS fragment → offer selector → regional commerce response). Requires a region -- either passed explicitly or already given earlier in this session. If neither is available, returns a missing-context result instead of assuming a region.",
       annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
@@ -140,7 +160,8 @@ export function PlansSurface() {
           planId: { type: "string" },
           region: {
             type: "string",
-            description: "Optional. Defaults to Meera's region from persisted user context.",
+            description:
+              "Country/region code (e.g. \"IN\") extracted from the user's request. Optional if the user already gave a region earlier in this session; otherwise required. If omitted and no session region exists, this tool returns a missing-context result so you can ask the user which country they're in.",
           },
         },
         required: ["planId"],
@@ -149,10 +170,12 @@ export function PlansSurface() {
         if (!input?.planId) {
           return toolError("MISSING_REQUIRED_CONTEXT", "The planId field is required.");
         }
-        const result = await getPlanPrice(plansFixture, userFixture, {
-          planId: input.planId,
-          region: input.region,
-        });
+        const sessionContext = readSessionContext();
+        const result = await getPlanPrice(plansFixture, { planId: input.planId, region: input.region }, sessionContext);
+        if (input?.region) {
+          const runtime = getMissionRuntime();
+          runtime?.updateIntentPassport((passport) => ({ ...passport, region: input.region }));
+        }
         if ("status" in result && "data" in result) {
           setLastToolOutput(JSON.stringify(result.data, null, 2));
         }
@@ -162,30 +185,56 @@ export function PlansSurface() {
     {
       name: "compare_plan_options",
       description:
-        "Compare Adobe plans against requirements and recommend the lowest-cost qualifying option using live regional pricing.",
+        "Compare Adobe plans against requirements and recommend the lowest-cost qualifying option using live regional pricing. Requires a region (explicit or from earlier in this session) to resolve a price -- returns a missing-context result otherwise. If both `audience` and `student` are supplied and disagree, returns a conflict error instead of guessing.",
       annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
         properties: {
-          requirements: { type: "array", items: { type: "string" } },
+          requirements: {
+            type: "array",
+            items: { type: "string" },
+            description: "Creative tasks/capabilities the user needs, extracted from their request.",
+          },
           region: {
             type: "string",
-            description: "Optional. Defaults to Meera's region from persisted user context.",
+            description:
+              "Country/region code (e.g. \"IN\", \"US\") extracted from the user's request. Optional if the user already gave a region earlier in this session; otherwise required for a priced recommendation.",
+          },
+          audience: {
+            type: "string",
+            enum: ["student", "individual"],
+            description:
+              "User audience extracted from the user's request. Prefer this over `student`. If omitted, reuses a session value if one was explicitly given earlier; otherwise no audience-based eligibility restriction is applied.",
           },
           student: {
             type: "boolean",
-            description: "Optional. Defaults to Meera's student status from persisted user context.",
+            description:
+              "Legacy/compatibility field: true if the user said they are a student, false otherwise. Prefer `audience` when possible. Providing both `audience` and `student` with conflicting meanings returns an error.",
           },
         },
         required: ["requirements"],
       },
-      execute: async (input: { requirements?: string[]; region?: string; student?: boolean }) => {
-        const result = await comparePlanOptions(plansFixture, userFixture, {
-          requirements: input?.requirements ?? [],
-          region: input?.region,
-          student: input?.student,
-        });
-        if ("status" in result && result.status === "ok") {
+      execute: async (input: { requirements?: string[]; region?: string; student?: boolean; audience?: string }) => {
+        const sessionContext = readSessionContext();
+        const result = await comparePlanOptions(
+          plansFixture,
+          {
+            requirements: input?.requirements ?? [],
+            region: input?.region,
+            student: input?.student,
+            audience: input?.audience,
+          },
+          sessionContext,
+        );
+        if (result.status === "ok") {
+          const runtime = getMissionRuntime();
+          runtime?.updateIntentPassport((passport) => ({
+            ...passport,
+            ...(input?.region ? { region: input.region } : {}),
+            ...(result.data.audience && (input?.audience !== undefined || input?.student !== undefined)
+              ? { audience: result.data.audience }
+              : {}),
+          }));
           setLastToolOutput(JSON.stringify(result.data, null, 2));
         }
         return result;
@@ -200,11 +249,10 @@ export function PlansSurface() {
       <section className="plans-hero">
         <p className="small-note">Plans and pricing</p>
         <h1 className="hero-title">Find the right plan</h1>
-        <p className="hero-subtitle">Choose from Individuals, Business, and Students & Teachers plans.</p>
+        <p className="hero-subtitle">Choose from Individuals and Students &amp; Teachers plans.</p>
         <div className="plans-audience-tabs">
-          <button className="plans-tab plans-tab-active" type="button">Students & Teachers</button>
+          <button className="plans-tab plans-tab-active" type="button">Students &amp; Teachers</button>
           <button className="plans-tab" type="button">Individuals</button>
-          <button className="plans-tab" type="button">Business</button>
         </div>
       </section>
 
