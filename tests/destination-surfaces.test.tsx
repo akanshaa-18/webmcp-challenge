@@ -91,6 +91,7 @@ describe("public destination surfaces", () => {
     await flush();
 
     const text = container.textContent ?? "";
+    expect(text).toContain("Legacy developer/demo route");
     expect(text).toContain("Firefly handoff destination");
     expect(text).toContain("Context carried into Firefly");
     expect(text).toContain("Intent Passport");
@@ -153,6 +154,7 @@ describe("public destination surfaces", () => {
     await flush();
 
     const text = container.textContent ?? "";
+    expect(text).toContain("Legacy developer/demo route");
     expect(text).toContain("Express handoff destination");
     expect(text).toContain("Context carried into Express");
     expect(text).toContain("Intent Passport");

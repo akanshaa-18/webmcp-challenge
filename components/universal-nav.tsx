@@ -17,9 +17,6 @@ export function UniversalNav() {
         {[
           ["/cc-home", "Home"],
           ["/plans", "Plans"],
-          ["/firefly", "Firefly"],
-          ["/express", "Express"],
-          ["/project/kaftan", "Project"],
           ["/capabilities", "Capabilities"],
         ].map(([href, label]) => (
           <Link key={href} href={href} className={`mission-mini-link ${pathname === href ? "mission-mini-link-active" : ""}`}>

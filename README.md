@@ -9,7 +9,9 @@ This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and plan-s
 ## Architecture (Milestone 1)
 
 - **Universal Nav / global layer** handles capability discovery and typed handoff creation.
-- **Product surfaces** (`/project/kaftan`, `/firefly`, `/express`, `/plans`) register their own local WebMCP tools for execution.
+- **Public flow** composes workflow context on `/cc-home` and hands users directly to registry-owned public product destinations (for example `https://firefly.adobe.com/`).
+- **Legacy/demo surfaces** (`/project/kaftan`, `/firefly`, `/express`) remain available for compatibility and route-local WebMCP lifecycle regression tests.
+- **Plans surface** (`/plans`) remains part of the public flow for pricing/capability exploration.
 - **Persistent mission context** is kept in React state and `sessionStorage` so mission/handoff state survives route navigation.
 - **Data is synthetic only** (Meera, Kaftan project, files, and generated outputs). No production Adobe APIs or customer data are used.
 - **Public intelligence catalog** (`lib/catalog/*`) is sourced as a **public reference snapshot** and powers global read-only product intelligence tools.
@@ -23,12 +25,8 @@ This prototype demonstrates multi-hop WebMCP workflows for **Kaftan** and plan-s
 
 ## Routes
 
-- `/cc-home`
-- `/project/kaftan`
-- `/firefly`
-- `/express`
-- `/plans`
-- `/capabilities`
+- Public routes: `/cc-home`, `/plans`, `/capabilities`
+- Legacy/demo routes: `/project/kaftan`, `/firefly`, `/express`
 
 ## Local setup
 
@@ -74,9 +72,7 @@ No local-only filesystem paths are required for runtime behavior.
 1. Open the deployed app and first click **Reset Demo** in the top nav.
 2. Confirm routes are directly loadable by URL:
    - `/plans`
-   - `/project/kaftan`
-   - `/firefly`
-   - `/express`
+   - `/cc-home`
 3. In a WebMCP-capable browser context, verify global discovery tools are available:
    - `get_user_region`
    - `get_current_adobe_context`
@@ -92,10 +88,15 @@ No local-only filesystem paths are required for runtime behavior.
    - `resume_workflow`
 4. Verify local tools by route:
    - `/plans`: `get_regional_plans`, `get_plan_capabilities`, `get_plan_price`, `compare_plan_options`
+5. Verify public workflow handoff behavior on `/cc-home`:
+   - compose workflow with `build_adobe_workflow`
+   - confirm primary CTA opens the external registry destination URL directly (for example Firefly)
+   - confirm no route transition through `/firefly` or `/express` in the public flow
+6. Verify legacy/demo route-local tools remain available when those routes are opened explicitly:
    - `/project/kaftan`: `get_project_context`, `search_files`, `get_file_metadata`, `find_duplicates`, `delete_file`
    - `/firefly`: `change_background`
    - `/express`: `create_business_card`
-5. Verify `delete_file` requires human UI approval:
+7. Verify `delete_file` requires human UI approval:
    - first call returns `confirmation_required`
    - click **Approve deletion** in UI
    - second call with confirmation ID succeeds
@@ -106,4 +107,4 @@ Public catalog data source label used by the new intelligence tools: **public_re
 
 ## Upload handling in this prototype
 
-The workflow may carry asset context (for example, "User-provided image"), but this prototype does **not** transfer binary user uploads into external Adobe surfaces. Handoffs preserve structured intent and workflow context only.
+The workflow may carry asset context (for example, "User-provided image"), but this prototype does **not** transfer binary user uploads into external Adobe surfaces. Handoffs preserve structured intent and workflow context only, and users continue in destination products by adding source assets there.

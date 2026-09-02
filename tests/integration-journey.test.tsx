@@ -79,7 +79,7 @@ describe("integration journey checkpoint", () => {
     pushSpy.mockClear();
   });
 
-  it("composes workflow on front door and continues with structured handoff", async () => {
+  it("composes workflow on front door and prepares direct external handoff", async () => {
     const { tools } = getRegisteredTools();
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -101,20 +101,21 @@ describe("integration journey checkpoint", () => {
       composeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const continueButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim()?.startsWith("Continue to Adobe Firefly"),
+    const continueLink = Array.from(container.querySelectorAll("a")).find(
+      (link) => link.textContent?.trim() === "Open Adobe Firefly",
     );
-    expect(continueButton).toBeDefined();
+    expect(continueLink).toBeDefined();
+    expect(continueLink?.getAttribute("href")).toBe("https://firefly.adobe.com/");
     await act(async () => {
-      continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      continueLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const destination = pushSpy.mock.calls.at(-1)?.[0] as string | undefined;
-    expect(destination).toMatch(/^\/firefly\?handoff=/);
-    const handoffId = destination?.split("handoff=")[1];
+    expect(pushSpy).not.toHaveBeenCalled();
+    const handoffId = getMissionRuntime()?.intentPassport.handoffTrail.at(-1) ?? "";
     const handoff = getMissionRuntime()?.getHandoff(handoffId ?? "");
     expect(handoff?.selectedWorkflowId).toBe("wf-firefly-express");
     expect(handoff?.selectedWorkflowStep).toBe("firefly-background-transformation");
+    expect(handoff?.selectedDestination).toBe("https://firefly.adobe.com/");
 
     await act(async () => {
       root.unmount();

@@ -372,7 +372,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
     {
       name: "prepare_handoff",
       description:
-        "Create a structured handoff from global discovery to a local execution surface and navigate.",
+        "Create a structured handoff from global discovery and return destination context for route or external continuation.",
       inputSchema: {
         type: "object",
         properties: {
@@ -419,12 +419,18 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             `Tool ${input.toolName} belongs to ${capability.ownerSurface}, not ${input.toSurface}.`,
           );
         }
-        if (!capability.destinationRoute) {
+        const useExternalPublicDestination =
+          currentSurface === "Adobe Agentic Front Door" && Boolean(capability.destinationUrl);
+        if (!capability.destinationRoute && !useExternalPublicDestination) {
           return toolError(
             "UNSUPPORTED_DESTINATION",
             `Tool ${input.toolName} is discovery-only and does not support local route handoff.`,
           );
         }
+
+        const selectedDestination = useExternalPublicDestination
+          ? capability.destinationUrl
+          : capability.destinationRoute;
 
         const handoff = runtime.createAndStoreHandoff({
           fromSurface: currentSurface,
@@ -434,13 +440,15 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
           assetIds: input.assetIds,
           task: input.task,
           expectedResult: input.expectedResult,
-          selectedDestination: capability.destinationRoute,
+          selectedDestination,
           selectedWorkflowStep: capability.toolName,
           brandContext: input.brandContext,
           market: input.market,
         });
 
-        router.push(`${capability.destinationRoute}?handoff=${handoff.handoffId}`);
+        if (!useExternalPublicDestination && capability.destinationRoute) {
+          router.push(`${capability.destinationRoute}?handoff=${handoff.handoffId}`);
+        }
 
         return {
           status: "ok",

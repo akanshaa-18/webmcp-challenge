@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { IntentPassportCard } from "@/components/intent-passport-card";
 import { useMission } from "@/components/mission-provider";
 import { ToolRegistrationStatus } from "@/components/tool-registration-status";
@@ -27,7 +26,6 @@ const DEFAULT_DISCOVERY_PROMPT = "What Adobe app should I use to edit a video?";
 const DEFAULT_COMPATIBILITY_PROMPT = "Will Premiere Pro run on my Mac?";
 
 export function FrontDoorSurface() {
-  const router = useRouter();
   const missionStore = useMission();
   const globalStatus = useGlobalWebMcpTools("Adobe Agentic Front Door", "/cc-home");
   const [goal, setGoal] = useState(DEFAULT_GOAL);
@@ -152,11 +150,11 @@ export function FrontDoorSurface() {
     }
 
     const capability = describeCapability(toolName);
-    if (!capability?.destinationRoute) {
+    if (!capability?.destinationUrl) {
       return;
     }
 
-    const handoff = runtime.createAndStoreHandoff({
+    runtime.createAndStoreHandoff({
       fromSurface: "Adobe Agentic Front Door",
       toSurface: capability.ownerSurface,
       toolName: capability.toolName,
@@ -169,7 +167,6 @@ export function FrontDoorSurface() {
       selectedDestination: firstStep.destinationUrl,
     });
 
-    router.push(`${capability.destinationRoute}?handoff=${handoff.handoffId}`);
   };
 
   const passport = missionStore.intentPassport;
@@ -196,9 +193,15 @@ export function FrontDoorSurface() {
             Compose creative workflow
           </button>
           {workflowResult?.status === "ok" ? (
-            <button type="button" className="button-link" onClick={continueWithHandoff}>
-              Continue to {workflowResult.data.steps[0]?.productName ?? "destination"}
-            </button>
+            <a
+              className="button-link"
+              href={workflowResult.data.recommendedStart.destinationUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={continueWithHandoff}
+            >
+              Open {workflowResult.data.steps[0]?.productName ?? "destination"}
+            </a>
           ) : null}
           <button
             type="button"
@@ -229,6 +232,14 @@ export function FrontDoorSurface() {
             Recommended starting point: {workflowResult.data.steps[0]?.productName} ·{" "}
             {workflowResult.data.recommendedStart.destinationUrl}
           </p>
+          {workflowResult.data.steps[0]?.productId === "firefly" ? (
+            <p className="small-note">Add your source image in Firefly to continue.</p>
+          ) : null}
+          {workflowResult.data.steps[1] ? (
+            <p className="small-note">
+              Next workflow step: {workflowResult.data.steps[1].productName} · {workflowResult.data.steps[1].capability}
+            </p>
+          ) : null}
         </section>
       ) : null}
 
@@ -277,6 +288,7 @@ export function FrontDoorSurface() {
             <p>{passport.discoveredCapabilities.includes("public.find_product_for_task") ? "✓" : "○"} Product capability discovered</p>
             <p>{passport.discoveredCapabilities.includes("public.build_adobe_workflow") ? "✓" : "○"} Workflow composed</p>
             <p>{passport.selectedDestination ? "✓" : "○"} Start destination identified</p>
+            <p>{passport.handoffTrail.length > 0 ? "✓" : "○"} Structured handoff prepared</p>
           </div>
         </div>
       </section>

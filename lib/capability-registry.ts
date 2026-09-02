@@ -255,7 +255,7 @@ export const toolManifests: ToolManifest[] = [
   {
     toolName: "firefly.change_background",
     ownerSurface: "Firefly",
-    description: "Change the background of the handed-off creative asset.",
+    description: "Legacy/demo local background-change simulation for routed handoff testing.",
     inputSchema: {
       type: "object",
       properties: {
@@ -268,12 +268,12 @@ export const toolManifests: ToolManifest[] = [
     destinationUrl: "https://firefly.adobe.com/",
     executionMode: "local-execution",
     readOnly: false,
-    audience: "public",
+    audience: "legacy-private",
   },
   {
     toolName: "express.create_business_card",
     ownerSurface: "Express",
-    description: "Create a business card concept from a prepared project asset.",
+    description: "Legacy/demo local business-card simulation for routed handoff testing.",
     inputSchema: {
       type: "object",
       properties: {
@@ -286,7 +286,7 @@ export const toolManifests: ToolManifest[] = [
     destinationUrl: "https://express.adobe.com/",
     executionMode: "local-execution",
     readOnly: false,
-    audience: "public",
+    audience: "legacy-private",
   },
 ];
 

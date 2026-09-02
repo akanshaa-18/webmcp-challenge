@@ -55,7 +55,7 @@ describe("front door surface", () => {
     pushSpy.mockClear();
   });
 
-  it("updates IntentPassport, renders workflow order/destination, and creates valid handoff", async () => {
+  it("updates IntentPassport, prepares external handoff, and does not route through local Firefly", async () => {
     registerTools();
     const container = document.createElement("div");
     const root = createRoot(container);
@@ -70,6 +70,10 @@ describe("front door surface", () => {
     expect(container.textContent).not.toContain("Adobe Agentic");
     expect(container.textContent).not.toContain("Adobe Agentic workspace");
     expect(container.textContent).toContain("Will Premiere Pro run on my Mac?");
+    const navLabels = Array.from(container.querySelectorAll(".mission-mini-links a")).map(
+      (link) => link.textContent?.trim(),
+    );
+    expect(navLabels).toEqual(["Home", "Plans", "Capabilities"]);
 
     const goalInput = container.querySelector<HTMLTextAreaElement>("#frontdoor-goal");
     expect(goalInput).toBeDefined();
@@ -102,26 +106,31 @@ describe("front door surface", () => {
     expect(container.textContent).not.toContain("Your Adobe workflow");
     expect(container.textContent).not.toContain("Why Adobe recommends this");
     expect(container.textContent).not.toContain("Kaftan Adobe Creative Mission Control");
+    expect(container.textContent).toContain("Open Adobe Firefly");
+    expect(container.textContent).not.toContain("change_background");
+    expect(container.textContent).not.toContain("create_business_card");
     const text = container.textContent ?? "";
     expect(text.indexOf("Adobe Firefly")).toBeLessThan(text.indexOf("Adobe Express"));
     expect(container.textContent).toContain("https://firefly.adobe.com/");
     expect(getMissionRuntime()?.intentPassport.userGoal).toBe(nextGoal);
 
-    const continueButton = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent?.trim().startsWith("Continue to Adobe Firefly"),
+    const continueLink = Array.from(container.querySelectorAll("a")).find(
+      (link) => link.textContent?.trim() === "Open Adobe Firefly",
     );
-    expect(continueButton).toBeDefined();
+    expect(continueLink).toBeDefined();
+    expect(continueLink?.getAttribute("href")).toBe("https://firefly.adobe.com/");
     await act(async () => {
-      continueButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      continueLink?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-
-    const destination = pushSpy.mock.calls.at(-1)?.[0] as string | undefined;
-    expect(destination).toMatch(/^\/firefly\?handoff=/);
-    const handoffId = destination?.split("handoff=")[1];
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Add your source image in Firefly to continue.");
+    expect(container.textContent).toContain("Next workflow step: Adobe Express");
+    const handoffId = getMissionRuntime()?.intentPassport.handoffTrail.at(-1) ?? "";
     const handoff = getMissionRuntime()?.getHandoff(handoffId ?? "");
     expect(handoff?.intentPassportId).toBeDefined();
     expect(handoff?.selectedWorkflowId).toBe("wf-firefly-express");
     expect(handoff?.selectedWorkflowStep).toBe("firefly-background-transformation");
+    expect(handoff?.selectedDestination).toBe("https://firefly.adobe.com/");
 
     await act(async () => {
       root.unmount();

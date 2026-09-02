@@ -131,10 +131,10 @@ export function FireflySurface({ handoffIdFromRoute }: FireflySurfaceProps) {
   return (
     <div className="surface">
       <header className="hero">
-        <p className="small-note">Public destination · Step 1 of 2</p>
+        <p className="small-note">Legacy developer/demo route · Step 1 of 2</p>
         <h1 className="hero-title">Firefly handoff destination</h1>
         <p className="hero-subtitle">
-          This page carries structured workflow context only. Creative execution happens in Adobe Firefly.
+          This route is retained for legacy regression testing. Public hero flow now hands off directly to Adobe Firefly.
         </p>
       </header>
 

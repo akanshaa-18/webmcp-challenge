@@ -111,10 +111,10 @@ export function ExpressSurface({ handoffIdFromRoute }: ExpressSurfaceProps) {
   return (
     <div className="surface">
       <header className="hero">
-        <p className="small-note">Public destination · Step 2 of 2</p>
+        <p className="small-note">Legacy developer/demo route · Step 2 of 2</p>
         <h1 className="hero-title">Express handoff destination</h1>
         <p className="hero-subtitle">
-          This page carries workflow continuity state. Business card creation runs on Adobe Express.
+          This route is retained for legacy regression testing. Public hero flow no longer navigates here.
         </p>
       </header>
 
