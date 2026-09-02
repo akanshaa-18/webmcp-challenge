@@ -5,12 +5,6 @@ import Image from "next/image";
 export function PremiumHero() {
   return (
     <section className="adobe-hero-centered">
-      {/* Top tagline */}
-      <div className="hero-tagline">
-        <span className="tagline-icon">✨</span>
-        AI-powered. Human-inspired.
-      </div>
-
       {/* Centered headline */}
       <h1 className="hero-headline">Your creative ecosystem, understood.</h1>
 
@@ -135,12 +129,6 @@ export function PremiumHero() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Agent orchestration text */}
-      <div className="hero-agent-statement">
-        <span className="agent-icon">✨</span>
-        AI Assistant orchestrates it all
       </div>
     </section>
   );
