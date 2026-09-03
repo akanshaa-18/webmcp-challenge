@@ -52,7 +52,7 @@ export const toolManifests: ToolManifest[] = [
   {
     toolName: "adobe_plans.get_regional_plans",
     ownerSurface: "Adobe Plans",
-    description: "Return regional demo Adobe plans filtered by audience and location context.",
+    description: "Return demo Adobe plan metadata filtered by an explicit or session region and/or catalog audience.",
     inputSchema: {
       type: "object",
       properties: {
@@ -60,7 +60,7 @@ export const toolManifests: ToolManifest[] = [
         audience: { type: "string" },
       },
     },
-    requiredContext: ["user.region", "user.student"],
+    requiredContext: ["region (optional: explicit or session)"],
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,
@@ -104,17 +104,19 @@ export const toolManifests: ToolManifest[] = [
   {
     toolName: "adobe_plans.compare_plan_options",
     ownerSurface: "Adobe Plans",
-    description: "Compare plans against requirements and return the lowest-cost qualifying option.",
+    description:
+      "Compare plans against requirements and return the lowest-cost qualifying option using live regional pricing. Requires a region (explicit or session); accepts audience (preferred) or the legacy student boolean.",
     inputSchema: {
       type: "object",
       properties: {
         requirements: { type: "array", items: { type: "string" } },
         region: { type: "string" },
+        audience: { type: "string", enum: ["student", "individual"] },
         student: { type: "boolean" },
       },
       required: ["requirements"],
     },
-    requiredContext: ["requirements", "user.region", "user.student"],
+    requiredContext: ["requirements", "region (explicit or session)", "audience or student (explicit or session, optional)"],
     destinationRoute: "/plans",
     executionMode: "local-execution",
     readOnly: true,

@@ -135,11 +135,13 @@ describe("integration journey checkpoint", () => {
 
     expect(container.textContent).toContain("Reset Demo");
 
-    const region = await invokeTool(tools, "get_user_region");
-    expect(region.status).toBe("ok");
-    expect(region.data?.region).toBe("IN");
-    expect(region.data?.city).toBe("Bangalore");
-    expect(region.data?.student).toBe(true);
+    const context = await invokeTool(tools, "get_current_adobe_context");
+    expect(context.status).toBe("ok");
+    const contextData = context.data as { intent?: { region?: unknown; audience?: unknown } } | undefined;
+    // A fresh session has no legitimate region/audience yet -- get_user_region
+    // (which fabricated IN/Bangalore/student from a fixture) has been removed.
+    expect(contextData?.intent?.region).toBeNull();
+    expect(contextData?.intent?.audience).toBeNull();
 
     const planHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "adobe_plans.compare_plan_options",
@@ -163,11 +165,16 @@ describe("integration journey checkpoint", () => {
 
     const regionalPlans = await invokeTool(tools, "get_regional_plans", {});
     expect(regionalPlans.status).toBe("ok");
-    const regionalPlansData = regionalPlans.data as { region: string } | undefined;
-    expect(regionalPlansData?.region).toBe("IN");
+    const regionalPlansData = regionalPlans.data as { region: string | null; plans: unknown[] } | undefined;
+    // No explicit region and no session region yet -- must not fabricate "IN".
+    expect(regionalPlansData?.region).toBeNull();
+    expect(regionalPlansData?.plans.length).toBe(3);
 
+    // Agent supplies region + audience explicitly, extracted from the user's request.
     const recommendation = await invokeTool(tools, "compare_plan_options", {
       requirements: ["photo editing", "business card design", "background replacement"],
+      region: "IN",
+      audience: "student",
     });
     expect(recommendation.status).toBe("ok");
     const recommendationData = recommendation.data as
@@ -175,12 +182,15 @@ describe("integration journey checkpoint", () => {
       | undefined;
     expect(recommendationData?.recommendedPlan?.planId).toBe("adobe-student-cc-in");
 
+    // Region is now omitted here -- it must be reused from the session context
+    // that compare_plan_options just persisted, not defaulted to India.
     const pricing = await invokeTool(tools, "get_plan_price", {
       planId: recommendationData?.recommendedPlan?.planId,
     });
     expect(pricing.status).toBe("ok");
-    const pricingData = pricing.data as { dataSource: string } | undefined;
+    const pricingData = pricing.data as { dataSource: string; contextSource: { region: string } } | undefined;
     expect(pricingData?.dataSource).toBe("live_regional_pricing");
+    expect(pricingData?.contextSource.region).toBe("session");
 
     expect(getMissionRuntime()?.mission).toEqual(missionBeforePlans);
 
@@ -208,6 +218,7 @@ describe("integration journey checkpoint", () => {
         ?.capabilities?.some((c) => c.capabilityId === "firefly-background-transformation"),
     ).toBe(true);
 
+    // Within a mission context, legacy tools can still be handoff'd directly (not via discovery).
     const fireflyHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "firefly.change_background",
       toSurface: "Firefly",
@@ -241,6 +252,7 @@ describe("integration journey checkpoint", () => {
         ?.capabilities?.some((c) => c.capabilityId === "express-business-card-layout"),
     ).toBe(true);
 
+    // Direct handoff to express (mission context).
     const expressHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "express.create_business_card",
       toSurface: "Express",
@@ -286,7 +298,10 @@ describe("integration journey checkpoint", () => {
 
     expect(tools.has("find_duplicates")).toBe(true);
     expect(tools.has("create_business_card")).toBe(false);
-    expect(tools.has("get_user_region")).toBe(true);
+    // get_user_region fabricated a fake persisted persona and has been removed
+    // from the public WebMCP tool surface entirely (Phase 2A).
+    expect(tools.has("get_user_region")).toBe(false);
+    expect(tools.has("get_current_adobe_context")).toBe(true);
 
     const duplicates = await invokeTool(tools, "find_duplicates", {});
     expect(duplicates.status).toBe("ok");

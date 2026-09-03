@@ -75,8 +75,9 @@ export const seededMission: Mission = {
 export const seededIntentPassport: IntentPassport = {
   id: "intent-passport-session",
   userGoal: "Find the right Adobe products and plans for my workflow.",
-  region: userFixture.region,
-  audience: userFixture.student ? "student" : "individual",
+  // region/audience intentionally start unset: a fresh public session has no
+  // legitimate context until the calling agent supplies it explicitly on a
+  // tool call. Do not seed these from userFixture -- see Phase 2 audit.
   requirements: [],
   discoveredCapabilities: [],
   selectedProducts: [],
@@ -89,16 +90,15 @@ export const seededIntentPassport: IntentPassport = {
   ],
   createdAt: "2026-09-01T00:00:00.000Z",
   updatedAt: "2026-09-01T00:00:00.000Z",
+  executionHistory: [],
 };
 
 export const plansFixture: Plan[] = [
   {
     id: "adobe-student-cc-in",
     name: "Creative Cloud Student",
-    region: "IN",
+    supportedRegions: ["IN", "US"],
     audience: "student",
-    price: 1599,
-    currency: "INR",
     billingPeriod: "month",
     includedApps: ["Photoshop", "Illustrator", "Express", "Acrobat"],
     capabilities: [
@@ -114,10 +114,8 @@ export const plansFixture: Plan[] = [
   {
     id: "adobe-photography-in",
     name: "Photography Plan",
-    region: "IN",
+    supportedRegions: ["IN", "US"],
     audience: "individual",
-    price: 799,
-    currency: "INR",
     billingPeriod: "month",
     includedApps: ["Photoshop", "Lightroom"],
     capabilities: ["photo editing", "raw development", "portfolio exports"],
@@ -127,10 +125,8 @@ export const plansFixture: Plan[] = [
   {
     id: "adobe-all-apps-in",
     name: "Creative Cloud All Apps",
-    region: "IN",
+    supportedRegions: ["IN", "US"],
     audience: "professional",
-    price: 4599,
-    currency: "INR",
     billingPeriod: "month",
     includedApps: ["Photoshop", "Illustrator", "Express", "InDesign", "Premiere Pro"],
     capabilities: [

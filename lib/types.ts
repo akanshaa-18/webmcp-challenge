@@ -43,10 +43,8 @@ export interface DeletionApprovalRequest {
 export interface Plan {
   id: string;
   name: string;
-  region: string;
+  supportedRegions: string[];
   audience: string;
-  price: number;
-  currency: string;
   billingPeriod: string;
   includedApps: string[];
   capabilities: string[];
@@ -70,6 +68,17 @@ export interface Mission {
   handoffHistory: string[];
 }
 
+export interface ExecutionEvent {
+  toolName: string;
+  order: number;
+  status: "running" | "success" | "error";
+  startedAt: string;
+  completedAt?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  summary?: string;
+}
+
 export interface IntentPassport {
   id: string;
   userGoal: string;
@@ -86,6 +95,16 @@ export interface IntentPassport {
   userConstraints?: string[];
   createdAt: string;
   updatedAt: string;
+  // Actual tool results for premium UI
+  comparePlanResult?: any;
+  actualWorkflowSteps?: { productName: string; initials: string; color: string; task: string; receives?: string; produces: string; destinationUrl?: string }[];
+  checkoutUrl?: string;
+  checkoutAction?: "buy" | "trial";
+  // Track when context is set by actual tool execution (not seeded)
+  regionFromTool?: boolean;
+  workflowFromTool?: boolean;
+  // Real WebMCP execution timeline
+  executionHistory: ExecutionEvent[];
 }
 
 export interface HandoffContext {

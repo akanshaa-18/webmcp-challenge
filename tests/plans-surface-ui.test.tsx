@@ -71,6 +71,49 @@ describe("plans surface ui cleanup", () => {
       "Plan information uses a public reference snapshot. Pricing is resolved at request time from live regional pricing.",
     );
 
+    // No business/teams plan exists in the catalog -- the tab must not claim
+    // support that the current data cannot honestly fulfill (Phase 2A).
+    expect(text).not.toContain("Business");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("registers plan tool schemas with no fabricated persona language", async () => {
+    const tools = new Map<string, WebMcpTool>();
+    Object.defineProperty(document, "modelContext", {
+      value: {
+        registerTool: (tool: WebMcpTool) => {
+          tools.set(tool.name, tool);
+        },
+        unregisterTool: (name: string) => {
+          tools.delete(name);
+        },
+      },
+      configurable: true,
+    });
+
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    await act(async () => {
+      root.render(<Harness />);
+    });
+    await flush();
+
+    for (const toolName of ["get_regional_plans", "get_plan_price", "compare_plan_options"]) {
+      const tool = tools.get(toolName);
+      expect(tool).toBeDefined();
+      const serialized = JSON.stringify(tool?.inputSchema ?? {}) + (tool?.description ?? "");
+      expect(serialized).not.toContain("Meera");
+    }
+
+    const compareTool = tools.get("compare_plan_options");
+    const properties = (compareTool?.inputSchema as { properties?: Record<string, unknown> } | undefined)
+      ?.properties;
+    expect(properties).toHaveProperty("audience");
+    expect(properties).toHaveProperty("student");
+
     await act(async () => {
       root.unmount();
     });
