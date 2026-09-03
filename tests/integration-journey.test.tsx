@@ -88,13 +88,12 @@ describe("integration journey checkpoint", () => {
     });
     await flush();
 
-    const featureDiscovery = await invokeTool(tools, "find_apps_for_feature", {
-      feature: "remove background",
-    });
+    const featureDiscovery = await invokeTool(tools, "adobe_directory");
     expect(featureDiscovery.status).toBe("ok");
     expect(
-      (featureDiscovery.data as { matches?: Array<{ productId: string }> } | undefined)?.matches?.[0]?.productId,
-    ).toBe("firefly");
+      (featureDiscovery.data as { capabilities?: Array<{ capabilityId: string }> } | undefined)
+        ?.capabilities?.some((c) => c.capabilityId === "firefly-background-transformation"),
+    ).toBe(true);
 
     const composeButton = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent?.trim() === "Compose creative workflow",
@@ -202,11 +201,12 @@ describe("integration journey checkpoint", () => {
     const search = await invokeTool(tools, "search_files", { query: "Kaftan logo" });
     expect(search.status).toBe("ok");
 
-    const fireflyDiscovery = await invokeTool(tools, "find_apps_for_feature", {
-      feature: "change image background",
-    });
+    const fireflyDiscovery = await invokeTool(tools, "adobe_directory");
     expect(fireflyDiscovery.status).toBe("ok");
-    expect((fireflyDiscovery.data as { matches?: Array<{ productId: string }> } | undefined)?.matches?.[0]?.productId).toBe("firefly");
+    expect(
+      (fireflyDiscovery.data as { capabilities?: Array<{ capabilityId: string }> } | undefined)
+        ?.capabilities?.some((c) => c.capabilityId === "firefly-background-transformation"),
+    ).toBe(true);
 
     const fireflyHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "firefly.change_background",
@@ -234,11 +234,12 @@ describe("integration journey checkpoint", () => {
     expect(getMissionRuntime()?.mission.currentAssetId).toBe("kaftan-logo-background-v1");
     expect(getMissionRuntime()?.mission.completedSteps).toContain("change_background");
 
-    const expressDiscovery = await invokeTool(tools, "find_apps_for_feature", {
-      feature: "create business card",
-    });
+    const expressDiscovery = await invokeTool(tools, "adobe_directory");
     expect(expressDiscovery.status).toBe("ok");
-    expect((expressDiscovery.data as { matches?: Array<{ productId: string }> } | undefined)?.matches?.[0]?.productId).toBe("express");
+    expect(
+      (expressDiscovery.data as { capabilities?: Array<{ capabilityId: string }> } | undefined)
+        ?.capabilities?.some((c) => c.capabilityId === "express-business-card-layout"),
+    ).toBe(true);
 
     const expressHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "express.create_business_card",

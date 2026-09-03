@@ -287,7 +287,7 @@ function scoreTaskMatch(task: string, taskType: string): number {
     return 100;
   }
 
-  const tokens = normalizedTaskType.split(/\s+/).filter(Boolean);
+  const tokens = normalizedTaskType.split(/\s+/).filter((t) => t.length >= 3);
   return tokens.reduce((score, token) => (normalizedTask.includes(token) ? score + 10 : score), 0);
 }
 
@@ -319,6 +319,10 @@ export function hasKnownProduct(productId: string): boolean {
 
 export function getAllTaskTypes(): string[] {
   return [...new Set(productCapabilities.flatMap((c) => c.taskTypes))].sort();
+}
+
+export function getAllCapabilities(): ProductCapability[] {
+  return productCapabilities;
 }
 
 export interface CapabilityContinuation {

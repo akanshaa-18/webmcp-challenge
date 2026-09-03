@@ -165,10 +165,8 @@ describe("intent passport transition", () => {
     });
     await flush();
 
-    const found = await invokeTool(tools, "find_apps_for_feature", {
-      feature: "remove background",
-    });
-    expect(found.status).toBe("ok");
+    const directory = await invokeTool(tools, "adobe_directory");
+    expect(directory.status).toBe("ok");
 
     const capabilities = await invokeTool(tools, "get_product_capabilities", {
       productId: "firefly",
@@ -176,12 +174,7 @@ describe("intent passport transition", () => {
     expect(capabilities.status).toBe("ok");
 
     const runtime = getMissionRuntime();
-    expect(runtime?.intentPassport.discoveredCapabilities).toEqual(
-      expect.arrayContaining([
-        "firefly-background-transformation",
-        "public.get_product_capabilities",
-      ]),
-    );
+    expect(runtime?.intentPassport.discoveredCapabilities).toContain("public.get_product_capabilities");
     expect(runtime?.intentPassport.selectedProducts).toContain("firefly");
     expect(runtime?.intentPassport.selectedDestination).toBe("https://firefly.adobe.com/");
 

@@ -2,17 +2,11 @@ import { ToolManifest } from "@/lib/types";
 
 export const toolManifests: ToolManifest[] = [
   {
-    toolName: "public.find_apps_for_feature",
+    toolName: "public.adobe_directory",
     ownerSurface: "Global",
-    description: "Find which Adobe app handles a feature and what apps can follow it in a multi-step sequence. Returns ranked capability matches with continuations for cross-app workflows.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        feature: { type: "string" },
-      },
-      required: ["feature"],
-    },
-    requiredContext: ["feature"],
+    description: "Returns all Adobe app capabilities with descriptions, task types, and cross-app continuation paths. Use this to discover which Adobe product handles a given feature — read the full catalog and pick the best match based on the user's goal.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+    requiredContext: [],
     destinationUrl: "https://www.adobe.com/",
     executionMode: "global-discovery",
     readOnly: true,

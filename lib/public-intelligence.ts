@@ -1,7 +1,6 @@
 import {
+  getAllCapabilities,
   getCapabilitiesByProductId,
-  getCapabilityContinuations,
-  getAllTaskTypes,
   hasKnownProduct,
   rankCapabilitiesForTask,
 } from "@/lib/catalog/capabilities";
@@ -48,59 +47,31 @@ function hasDeviceData(device?: CompatibilityDeviceContext): boolean {
   );
 }
 
-export function findAppsForFeature(feature?: string) {
-  if (!feature?.trim()) {
-    return toolError("MISSING_REQUIRED_CONTEXT", "The feature field is required.");
-  }
-
-  const rankedCapabilities = rankCapabilitiesForTask(feature);
-  if (rankedCapabilities.length === 0) {
-    return {
-      status: "error" as const,
-      code: "UNKNOWN_FEATURE",
-      message: "No Adobe app capability matched this feature in the public reference catalog.",
-      availableTaskTypes: getAllTaskTypes(),
-    };
-  }
-
-  const seenProducts = new Set<string>();
-  const matches = rankedCapabilities
-    .filter((capability) => {
-      if (seenProducts.has(capability.productId)) return false;
-      seenProducts.add(capability.productId);
-      return true;
-    })
-    .slice(0, 3)
-    .map((capability, index) => {
+export function adobeDirectory() {
+  const capabilities = getAllCapabilities()
+    .map((capability) => {
       const product = getPublicProductById(capability.productId);
       if (!product) return null;
       return {
-        rank: index + 1,
-        productId: product.id,
-        productName: product.name,
         capabilityId: capability.id,
         capabilityName: capability.name,
-        why: capability.description,
+        productId: product.id,
+        productName: product.name,
+        description: capability.description,
+        taskTypes: capability.taskTypes,
+        inputs: capability.inputs,
+        outputs: capability.outputs,
+        compatibleNextCapabilities: capability.compatibleNextCapabilities,
         destinationUrl: capability.destinationUrl,
-        continuations: getCapabilityContinuations(capability.id),
       };
     })
-    .filter((match): match is NonNullable<typeof match> => match !== null);
-
-  if (matches.length === 0) {
-    return {
-      status: "error" as const,
-      code: "UNKNOWN_FEATURE",
-      message: "No Adobe app capability matched this feature in the public reference catalog.",
-      availableTaskTypes: getAllTaskTypes(),
-    };
-  }
+    .filter((c): c is NonNullable<typeof c> => c !== null);
 
   return {
     status: "ok" as const,
     data: {
-      feature,
-      matches,
+      selectionHint: "Match the user's request against each capability's taskTypes and description. Pick the capability whose taskTypes most closely match the user's intent. Do not rely on general knowledge — use only the taskTypes and description fields below.",
+      capabilities,
       dataSource: "public_reference_snapshot" as const,
     },
   };

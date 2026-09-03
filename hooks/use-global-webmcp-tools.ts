@@ -7,12 +7,11 @@ import {
   runtimeToolNameForManifest,
   toolManifests,
 } from "@/lib/capability-registry";
-import { getAllTaskTypes } from "@/lib/catalog/capabilities";
 import { toolError } from "@/lib/errors";
 import { userFixture } from "@/lib/fixtures";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
-  findAppsForFeature,
+  adobeDirectory,
   getProductCapabilities,
 } from "@/lib/public-intelligence";
 import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
@@ -86,54 +85,19 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             runtimeToolName: runtimeToolNameForManifest(manifest.toolName),
           })),
           namingConvention:
-            "Registry uses namespaced manifest IDs (for example public.find_apps_for_feature); WebMCP runtime tools are registered by route as unprefixed names (for example find_apps_for_feature).",
+            "Registry uses namespaced manifest IDs (for example public.adobe_directory); WebMCP runtime tools are registered by route as unprefixed names (for example adobe_directory).",
         },
       }),
     },
     {
-      name: "find_apps_for_feature",
+      name: "adobe_directory",
       description:
-        "Find which Adobe app handles a feature and what apps can follow it in a multi-step sequence. " +
-        "Use this when the user describes a capability or feature rather than a full task. " +
-        "Returns ranked app matches with continuations for cross-app workflows. " +
-        "If no match is found, the response includes availableTaskTypes listing all known feature strings.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          feature: {
-            type: "string",
-            description:
-              "A feature or task description. Known task types: " +
-              getAllTaskTypes().join(", ") +
-              ". Other phrasing may also match via partial keyword scoring.",
-          },
-        },
-        required: ["feature"],
-      },
+        "Returns the full Adobe capability catalog. " +
+        "Call this first when the user asks which Adobe app to use for a task. " +
+        "After calling it, scan EVERY capability's taskTypes array and description to find the closest semantic match to the user's request. " +
+        "Do NOT default to Firefly or any other product based on prior knowledge — always base your recommendation on the taskTypes and description fields in the response.",
       annotations: { readOnlyHint: true },
-      execute: (input: { feature?: string }) => {
-        const result = findAppsForFeature(input?.feature);
-        if (result.status !== "ok") return result;
-
-        const runtime = getMissionRuntime();
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            requirements: input?.feature ? [input.feature] : passport.requirements,
-            discoveredCapabilities: Array.from(new Set([
-              ...passport.discoveredCapabilities,
-              ...result.data.matches.map((m) => m.capabilityId),
-            ])),
-            selectedProducts: Array.from(new Set([
-              ...passport.selectedProducts,
-              ...result.data.matches.map((m) => m.productId),
-            ])),
-            selectedDestination: result.data.matches[0]?.destinationUrl ?? passport.selectedDestination,
-          }));
-        }
-
-        return result;
-      },
+      execute: () => adobeDirectory(),
     },
     {
       name: "get_product_capabilities",

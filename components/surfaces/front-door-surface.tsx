@@ -10,11 +10,11 @@ import { plansFixture, userFixture } from "@/lib/fixtures";
 import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
-  findAppsForFeature,
   findProductForTask,
   getProductCapabilities,
 } from "@/lib/public-intelligence";
-import { getCapabilityById, rankCapabilitiesForTask } from "@/lib/catalog/capabilities";
+import { getCapabilityById, getCapabilityContinuations, rankCapabilitiesForTask } from "@/lib/catalog/capabilities";
+import { getPublicProductById } from "@/lib/catalog/products";
 import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
 import { comparePlanOptions } from "@/lib/plans";
 
@@ -148,31 +148,38 @@ export function FrontDoorSurface() {
   };
 
   const composeWorkflow = () => {
-    const result = findAppsForFeature(goal);
+    const ranked = rankCapabilitiesForTask(goal);
 
-    if (result.status !== "ok" || result.data.matches.length === 0) {
-      setWorkflowResult({
-        status: "error",
-        code: result.status === "error" ? result.code : "NO_MATCH",
-        message: result.status === "error" ? result.message : "No Adobe apps matched this goal.",
-      });
+    if (ranked.length === 0) {
+      setWorkflowResult({ status: "error", code: "NO_MATCH", message: "No Adobe apps matched this goal." });
       return;
     }
 
-    const top = result.data.matches[0];
+    const topCapability = ranked[0];
+    const topProduct = getPublicProductById(topCapability.productId);
+    if (!topProduct) {
+      setWorkflowResult({ status: "error", code: "NO_MATCH", message: "No Adobe apps matched this goal." });
+      return;
+    }
 
-    // Continuations are alternatives — pick the one that best matches the goal.
-    // If none score, the workflow is standalone (no forced next step).
-    let bestContinuation: typeof top.continuations[0] | null = null;
-    if (top.continuations.length > 0) {
+    const continuations = getCapabilityContinuations(topCapability.id);
+    let bestContinuation: typeof continuations[0] | null = null;
+    if (continuations.length > 0) {
       const scored = rankCapabilitiesForTask(goal)
-        .filter((cap) => top.continuations.some((c) => c.capabilityId === cap.id));
+        .filter((cap) => continuations.some((c) => c.capabilityId === cap.id));
       if (scored.length > 0) {
-        bestContinuation = top.continuations.find((c) => c.capabilityId === scored[0].id) ?? null;
+        bestContinuation = continuations.find((c) => c.capabilityId === scored[0].id) ?? null;
       }
     }
 
-    const allSteps = [top, ...(bestContinuation ? [bestContinuation] : [])];
+    const topStep = {
+      productId: topProduct.id,
+      productName: topProduct.name,
+      capabilityId: topCapability.id,
+      capabilityName: topCapability.name,
+      destinationUrl: topCapability.destinationUrl,
+    };
+    const allSteps = [topStep, ...(bestContinuation ? [bestContinuation] : [])];
 
     const steps: WorkflowStep[] = allSteps.map((step, index) => {
       const cap = getCapabilityById(step.capabilityId);
@@ -182,7 +189,7 @@ export function FrontDoorSurface() {
         productName: step.productName,
         capabilityId: step.capabilityId,
         capability: step.capabilityName,
-        why: cap?.description ?? ("why" in step ? (step as { why: string }).why : ""),
+        why: cap?.description ?? "",
         requires: cap?.inputs ?? [],
         produces: cap?.outputs?.[0] ?? "",
         destinationUrl: step.destinationUrl,
