@@ -6,6 +6,7 @@ import { useMission } from "@/components/mission-provider";
 import { plansFixture } from "@/lib/fixtures";
 import { Plan } from "@/lib/types";
 import { resolvePlanPrice } from "@/lib/regional-pricing";
+import { getGoalsForPlan } from "@/lib/goals";
 
 type Category = "individual" | "student";
 
@@ -34,7 +35,11 @@ function buildCheckoutUrl(plan: Plan, country: string): string {
   return "https://www.adobe.com/creativecloud/plans.html";
 }
 
-export function PremiumPlansSection() {
+interface PremiumPlansSectionProps {
+  selectedGoalId?: string | null;
+}
+
+export function PremiumPlansSection({ selectedGoalId }: PremiumPlansSectionProps) {
   const missionStore = useMission();
   const passport = missionStore.intentPassport;
   const country = passport.region ?? "IN";
@@ -179,6 +184,11 @@ export function PremiumPlansSection() {
               const priceState = prices[plan.id];
               const iconSrc = PLAN_ICONS[plan.id];
               const checkoutUrl = buildCheckoutUrl(plan, country);
+              const supportedGoals = getGoalsForPlan(plan.id);
+              const isRelevant = selectedGoalId
+                ? supportedGoals.some((g) => g.id === selectedGoalId)
+                : false;
+              const isDimmed = selectedGoalId ? !isRelevant : false;
 
               return (
                 <a
@@ -186,7 +196,13 @@ export function PremiumPlansSection() {
                   href={checkoutUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="plans-catalog-card"
+                  className={[
+                    "plans-catalog-card",
+                    isRelevant ? "plans-catalog-card-relevant" : "",
+                    isDimmed ? "plans-catalog-card-dimmed" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   aria-label={`View ${plan.name}`}
                 >
                   {iconSrc && (
@@ -206,6 +222,24 @@ export function PremiumPlansSection() {
                       : "—"}
                   </p>
                   <p className="plans-catalog-period">/month</p>
+                  {supportedGoals.length > 0 && (
+                    <div className="plans-goal-list">
+                      {supportedGoals.slice(0, 3).map((goal) => (
+                        <div
+                          key={goal.id}
+                          className={`plans-goal-item${selectedGoalId === goal.id ? " plans-goal-item-active" : ""}`}
+                        >
+                          <span className="plans-goal-check">✓</span>
+                          {goal.label}
+                        </div>
+                      ))}
+                      {supportedGoals.length > 3 && (
+                        <div className="plans-goal-item" style={{ color: "var(--adobe-neutral-mid)", fontStyle: "italic" }}>
+                          +{supportedGoals.length - 3} more workflows
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </a>
               );
             })}

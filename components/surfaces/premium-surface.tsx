@@ -2,6 +2,7 @@
 
 import { PremiumHeader } from "@/components/premium-header";
 import { PremiumHero } from "@/components/premium-hero";
+import { GoalDiscovery } from "@/components/goal-discovery";
 import { CapabilityGrid } from "@/components/capability-grid";
 import { WorkflowShowcase } from "@/components/workflow-showcase";
 import { PremiumPlansSection } from "@/components/premium-plans-section";
@@ -16,14 +17,16 @@ export function PremiumSurface() {
   const globalStatus = useGlobalWebMcpTools("Adobe Agentic Front Door", "/cc-home");
   const [planTools] = useState(() => createPlanActionTools());
   const planStatus = useWebMcpTools(planTools);
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
 
   return (
     <>
       <PremiumHeader />
       <PremiumHero />
-      <PremiumPlansSection />
-      <CapabilityGrid />
-      <WorkflowShowcase />
+      <GoalDiscovery selectedGoalId={selectedGoalId} onGoalSelect={setSelectedGoalId} />
+      <WorkflowShowcase selectedGoalId={selectedGoalId} />
+      <CapabilityGrid selectedGoalId={selectedGoalId} onGoalSelect={setSelectedGoalId} />
+      <PremiumPlansSection selectedGoalId={selectedGoalId} />
 
       {/* Developer details drawer */}
       <div style={{ padding: "0 clamp(16px, 3vw, 48px)", maxWidth: "1440px", margin: "60px auto 0", borderTop: "1px solid var(--adobe-border)" }}>

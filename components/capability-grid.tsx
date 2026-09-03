@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { getGoalsForCapability } from "@/lib/goals";
 
 interface Capability {
   id: string;
@@ -8,7 +9,11 @@ interface Capability {
   title: string;
   products: Array<{ name: string; initials: string; color: string; icon?: string }>;
   gridSpan?: "tall" | "wide" | "normal";
-  bgImage?: string;
+}
+
+interface CapabilityGridProps {
+  selectedGoalId?: string | null;
+  onGoalSelect?: (goalId: string | null) => void;
 }
 
 const CAPABILITY_GROUPS: Capability[] = [
@@ -64,46 +69,81 @@ const CAPABILITY_GROUPS: Capability[] = [
   },
 ];
 
-export function CapabilityGrid() {
+export function CapabilityGrid({ selectedGoalId, onGoalSelect }: CapabilityGridProps) {
   return (
     <section id="capabilities" className="capabilities-container">
       <h2 className="capabilities-heading">Creative Capabilities</h2>
       <div className="capabilities-bento">
-        {CAPABILITY_GROUPS.map((capability) => (
-          <div
-            key={capability.id}
-            className={`capability-card ${capability.gridSpan ? `capability-card-${capability.gridSpan}` : ""}`}
-            role="button"
-            tabIndex={0}
-            aria-label={`Explore ${capability.title}`}
-          >
-            <p className="capability-label">{capability.label}</p>
-            <h3 className="capability-title">{capability.title}</h3>
-            <div className="capability-products">
-              {capability.products.map((product) => (
-                <div key={product.name} className="capability-product-mark">
-                  {product.icon ? (
-                    <Image
-                      src={product.icon}
-                      alt={product.name}
-                      width={24}
-                      height={24}
-                      className="product-icon-mini"
-                    />
-                  ) : (
-                    <div
-                      className="product-mark-mini"
-                      style={{ backgroundColor: product.color }}
-                    >
-                      {product.initials}
-                    </div>
-                  )}
-                  <span>{product.name}</span>
+        {CAPABILITY_GROUPS.map((capability) => {
+          const relatedGoals = getGoalsForCapability(capability.id);
+          const isHighlighted = selectedGoalId
+            ? relatedGoals.some((g) => g.id === selectedGoalId)
+            : false;
+          const isDimmed = selectedGoalId ? !isHighlighted : false;
+
+          return (
+            <div
+              key={capability.id}
+              className={[
+                "capability-card",
+                capability.gridSpan ? `capability-card-${capability.gridSpan}` : "",
+                isHighlighted ? "capability-card-highlighted" : "",
+                isDimmed ? "capability-card-dimmed" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              role="button"
+              tabIndex={0}
+              aria-label={`Explore ${capability.title}`}
+            >
+              <p className="capability-label">{capability.label}</p>
+              <h3 className="capability-title">{capability.title}</h3>
+              <div className="capability-products">
+                {capability.products.map((product) => (
+                  <div key={product.name} className="capability-product-mark">
+                    {product.icon ? (
+                      <Image
+                        src={product.icon}
+                        alt={product.name}
+                        width={24}
+                        height={24}
+                        className="product-icon-mini"
+                      />
+                    ) : (
+                      <div
+                        className="product-mark-mini"
+                        style={{ backgroundColor: product.color }}
+                      >
+                        {product.initials}
+                      </div>
+                    )}
+                    <span>{product.name}</span>
+                  </div>
+                ))}
+              </div>
+              {relatedGoals.length > 0 && (
+                <div className="capability-goals">
+                  <span className="capability-goals-label">Useful for:</span>
+                  <div className="capability-goal-tags">
+                    {relatedGoals.map((goal) => (
+                      <button
+                        key={goal.id}
+                        className={`capability-goal-tag${selectedGoalId === goal.id ? " capability-goal-tag-active" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onGoalSelect?.(selectedGoalId === goal.id ? null : goal.id);
+                        }}
+                        aria-label={`View ${goal.label} workflow`}
+                      >
+                        {goal.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
