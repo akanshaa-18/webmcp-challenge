@@ -34,7 +34,7 @@ function normalize(text: string): string {
 }
 
 function planFeatures(plan: Plan): string[] {
-  return [...plan.capabilities, ...plan.includedApps].map((item) => normalize(item));
+  return [...(plan.capabilities ?? []), ...(plan.includedApps ?? [])].map((item) => normalize(item));
 }
 
 function isRequirementMatched(requirement: string, features: string[]): boolean {
@@ -208,6 +208,8 @@ export async function getPlanPrice(
   const livePrice = await resolvePlanPrice({
     planId: plan.id,
     country: targetRegion,
+    osi: plan.osi,
+    fragmentId: plan.fragmentId,
   });
 
   if (livePrice.status !== "ok") {
@@ -270,33 +272,24 @@ export async function comparePlanOptions(
     );
   }
 
-  // Plan identity is region-neutral: qualification (capability match +
-  // audience eligibility) never varies by country, so no plan is pre-filtered
-  // by region here. Region only matters at the pricing step below, via
-  // getPlanPrice/resolvePlanPrice.
-  const assessed = plans.map((plan) => {
-    const features = planFeatures(plan);
-    const matchedCapabilities = input.requirements.filter((req) => isRequirementMatched(req, features));
-    const missingCapabilities = input.requirements.filter(
-      (req) => !matchedCapabilities.includes(req),
-    );
-    const eligible = isAudienceEligible(plan, audience);
+  // Filter by audience eligibility only. Requirement matching is left to the
+  // calling LLM — it receives all eligible plans with live prices and decides
+  // which best fits the user's stated needs.
+  const eligible = plans.filter((plan) => isAudienceEligible(plan, audience));
 
-    return {
-      planId: plan.id,
-      name: plan.name,
-      billingPeriod: plan.billingPeriod,
-      studentEligible: plan.studentEligible,
-      matchedCapabilities,
-      missingCapabilities,
-      qualifies: eligible && missingCapabilities.length === 0,
-    };
-  });
+  const priceResults = await Promise.all(
+    eligible.map(async (plan) => {
+      const price = await getPlanPrice(plans, { planId: plan.id, region });
+      return { plan, price };
+    }),
+  );
 
-  const qualified = assessed.filter((plan) => plan.qualifies);
-  type AssessedPlan = (typeof assessed)[number];
-  type PricedCandidate = {
-    candidate: AssessedPlan;
+  type PricedPlan = {
+    planId: string;
+    name: string;
+    billingPeriod: string;
+    studentEligible: boolean;
+    checkoutUrl: string;
     pricing: {
       planId: string;
       region: string;
@@ -310,51 +303,34 @@ export async function comparePlanOptions(
       retrievedAt: string;
     };
   };
-  const priceResults = await Promise.all(
-    qualified.map(async (candidate) => {
-      const price = await getPlanPrice(plans, {
-        planId: candidate.planId,
-        region,
-      });
-      return { candidate, price };
-    }),
-  );
 
-  const pricedQualified: PricedCandidate[] = [];
+  const pricedPlans: PricedPlan[] = [];
   for (const entry of priceResults) {
     if (entry.price.status === "ok") {
-      pricedQualified.push({
-        candidate: entry.candidate,
+      pricedPlans.push({
+        planId: entry.plan.id,
+        name: entry.plan.name,
+        billingPeriod: entry.plan.billingPeriod,
+        studentEligible: entry.plan.studentEligible,
+        checkoutUrl: entry.plan.commerceAlias
+          ? `https://commerce.adobe.com/store/segmentation?pa=${entry.plan.commerceAlias}&co=${region}&lang=en&cli=creative&ctx=if`
+          : `https://www.adobe.com/creativecloud/plans.html`,
         pricing: entry.price.data,
       });
     }
   }
-  pricedQualified.sort((a, b) => a.pricing.amount - b.pricing.amount || a.candidate.name.localeCompare(b.candidate.name));
+  pricedPlans.sort((a, b) => a.pricing.amount - b.pricing.amount || a.name.localeCompare(b.name));
 
-  const candidates = assessed.map((candidate) => {
-    const matched = priceResults.find((entry) => entry.candidate.planId === candidate.planId);
-    if (!matched) {
-      return candidate;
-    }
-    if (matched.price.status === "ok") {
-      return {
-        ...candidate,
-        pricing: matched.price.data,
-      };
-    }
-    if (matched.price.status === "price_unavailable") {
-      return {
-        ...candidate,
-        pricing: matched.price.data,
-      };
-    }
+  const candidates = priceResults.map((entry) => {
+    const priced = pricedPlans.find((p) => p.planId === entry.plan.id);
+    if (priced) return priced;
     return {
-      ...candidate,
-      pricing: {
-        planId: candidate.planId,
-        region,
-        reason: "contract_error",
-      },
+      planId: entry.plan.id,
+      name: entry.plan.name,
+      billingPeriod: entry.plan.billingPeriod,
+      studentEligible: entry.plan.studentEligible,
+      checkoutUrl: `https://www.adobe.com/creativecloud/plans.html`,
+      pricing: entry.price.status === "price_unavailable" ? entry.price.data : { planId: entry.plan.id, region, reason: "contract_error" },
     };
   });
 
@@ -366,12 +342,7 @@ export async function comparePlanOptions(
       student: audience === "student" ? true : audience === "individual" ? false : null,
       requirements: input.requirements,
       candidates,
-      recommendedPlan: pricedQualified[0]
-        ? {
-            ...pricedQualified[0].candidate,
-            pricing: pricedQualified[0].pricing,
-          }
-        : null,
+      recommendedPlan: pricedPlans[0] ?? null,
       dataSource: "live_regional_pricing",
       contextSource: { region: regionSource, audience: audienceSource },
     },

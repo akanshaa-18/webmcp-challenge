@@ -43,6 +43,10 @@ interface ResolvePriceInput {
   planId: string;
   country: string;
   locale?: string;
+  /** WCS offer selector ID from the plan fixture — skips MAS fragment lookup when set */
+  osi?: string;
+  /** MAS fragment ID from the plan fixture — used when osi is not available */
+  fragmentId?: string;
 }
 
 interface ResolvePriceOptions {
@@ -65,19 +69,6 @@ const COUNTRY_TO_LOCALE: Record<string, string> = {
   US: "en_US",
 };
 
-/**
- * Fragment IDs are centrally mapped to plan IDs to keep pricing internals out of
- * tool handlers and UI components.
- *
- * Provenance:
- * - `adobe-student-cc-in` appears in public Adobe plans merch references.
- * - Remaining IDs align with the same public plans merch card family used for pricing.
- */
-const PLAN_TO_MAS_FRAGMENT_ID: Record<string, string> = {
-  "adobe-student-cc-in": "2bee9d3e-55ae-4701-b946-44b32fa5d9fa",
-  "adobe-photography-in": "86248907-1cb6-4d1e-8b3f-a42dee95d9bc",
-  "adobe-all-apps-in": "2c5cd672-1db8-409c-96ff-46b1a1dfb7dc",
-};
 
 const cache = new Map<string, CacheEntry>();
 
@@ -259,6 +250,51 @@ async function fetchWcsOffer(
   return fetchImpl(url, { method: "GET", signal });
 }
 
+function parseWcsJson(
+  pricingJson: unknown,
+  planId: string,
+  country: string,
+  locale: string,
+): RegionalPriceResult {
+  const offers = (pricingJson as { resolvedOffers?: unknown })?.resolvedOffers;
+  if (!Array.isArray(offers) || offers.length === 0 || !offers[0] || typeof offers[0] !== "object") {
+    return unavailable(planId, country, locale, "pricing_unavailable");
+  }
+
+  const offer = offers[0] as {
+    analytics?: unknown;
+    term?: unknown;
+    priceDetails?: {
+      price?: unknown;
+      formatString?: unknown;
+    };
+    priceInfo?: {
+      price?: unknown;
+    };
+  };
+  const amount = offer.priceDetails?.price;
+  const formattedPrice = offer.priceInfo?.price;
+  const currency = parseCurrencyCode(offer.analytics, offer.priceDetails?.formatString);
+  if (typeof amount !== "number" || !Number.isFinite(amount) || typeof formattedPrice !== "string" || !currency) {
+    return unavailable(planId, country, locale, "contract_error");
+  }
+
+  return {
+    status: "ok",
+    data: {
+      planId,
+      country,
+      locale,
+      currency,
+      amount,
+      formattedPrice: decodeHtmlEntities(formattedPrice),
+      billingPeriod: toBillingPeriod(offer.term),
+      source: "live_regional_pricing",
+      retrievedAt: nowIso(),
+    },
+  };
+}
+
 export async function resolvePlanPrice(
   input: ResolvePriceInput,
   options: ResolvePriceOptions = {},
@@ -267,11 +303,6 @@ export async function resolvePlanPrice(
   const locale = resolveLocale(country, input.locale);
   if (!locale) {
     return unavailable(input.planId, country || "UNKNOWN", input.locale ?? "unknown", "unsupported_region");
-  }
-
-  const fragmentId = PLAN_TO_MAS_FRAGMENT_ID[input.planId];
-  if (!fragmentId) {
-    return unavailable(input.planId, country, locale, "fragment_unavailable");
   }
 
   const cacheKey = `${input.planId}|${country}|${locale}`;
@@ -286,6 +317,42 @@ export async function resolvePlanPrice(
     cache.set(cacheKey, { result, expiresAt: now + CACHE_TTL_MS });
     return result;
   };
+
+  // Fast path: OSI on the plan object — skip MAS fragment round-trip.
+  if (input.osi) {
+    let pricingResponse: Response;
+    try {
+      pricingResponse = await fetchWcsOffer(input.osi, country, locale, fetchImpl, options.signal);
+    } catch {
+      return storeAndReturn(unavailable(input.planId, country, locale, "upstream_unavailable"));
+    }
+
+    if (!pricingResponse.ok) {
+      return storeAndReturn(
+        unavailable(
+          input.planId,
+          country,
+          locale,
+          pricingResponse.status === 404 ? "pricing_unavailable" : "upstream_unavailable",
+        ),
+      );
+    }
+
+    let pricingJson: unknown;
+    try {
+      pricingJson = await pricingResponse.json();
+    } catch {
+      return storeAndReturn(unavailable(input.planId, country, locale, "contract_error"));
+    }
+
+    return storeAndReturn(parseWcsJson(pricingJson, input.planId, country, locale));
+  }
+
+  // Slow path: no OSI — resolve from MAS fragment.
+  const fragmentId = input.fragmentId;
+  if (!fragmentId) {
+    return unavailable(input.planId, country, locale, "fragment_unavailable");
+  }
 
   let fragmentResponse: Response;
   try {
@@ -342,44 +409,7 @@ export async function resolvePlanPrice(
     return storeAndReturn(unavailable(input.planId, country, locale, "contract_error"));
   }
 
-  const offers = (pricingJson as { resolvedOffers?: unknown })?.resolvedOffers;
-  if (!Array.isArray(offers) || offers.length === 0 || !offers[0] || typeof offers[0] !== "object") {
-    return storeAndReturn(unavailable(input.planId, country, locale, "pricing_unavailable"));
-  }
-
-  const offer = offers[0] as {
-    analytics?: unknown;
-    term?: unknown;
-    priceDetails?: {
-      price?: unknown;
-      formatString?: unknown;
-    };
-    priceInfo?: {
-      price?: unknown;
-    };
-  };
-  const amount = offer.priceDetails?.price;
-  const formattedPrice = offer.priceInfo?.price;
-  const currency = parseCurrencyCode(offer.analytics, offer.priceDetails?.formatString);
-  if (typeof amount !== "number" || !Number.isFinite(amount) || typeof formattedPrice !== "string" || !currency) {
-    return storeAndReturn(unavailable(input.planId, country, locale, "contract_error"));
-  }
-
-  const result: RegionalPriceSuccess = {
-    status: "ok",
-    data: {
-      planId: input.planId,
-      country,
-      locale,
-      currency,
-      amount,
-      formattedPrice: decodeHtmlEntities(formattedPrice),
-      billingPeriod: toBillingPeriod(offer.term),
-      source: "live_regional_pricing",
-      retrievedAt: nowIso(),
-    },
-  };
-  return storeAndReturn(result);
+  return storeAndReturn(parseWcsJson(pricingJson, input.planId, country, locale));
 }
 
 export function clearRegionalPricingCache() {

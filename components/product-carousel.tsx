@@ -91,7 +91,7 @@ export function ProductCarousel() {
       <h2 className="product-carousel-heading">Creative Products</h2>
       <div className="product-carousel">
         {FEATURED_PRODUCTS.map((product) => (
-          <article key={product.id} className="product-card">
+          <article key={product.id} className="product-card" role="button" tabIndex={0} aria-label={`Explore ${product.name}`}>
             <div className="product-icon-container">
               {product.icon ? (
                 <Image src={product.icon} alt={product.name} width={48} height={48} className="product-icon-large" />

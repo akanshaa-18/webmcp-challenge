@@ -1,19 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMission } from "@/components/mission-provider";
 
 export function AgentActivityDrawer() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const missionStore = useMission();
   const passport = missionStore.intentPassport;
+
+  // Display real WebMCP execution events in chronological order
+  const hasExecutions = passport.executionHistory && passport.executionHistory.length > 0;
+
+  // Auto-open only when real agent activity arrives
+  useEffect(() => {
+    if (hasExecutions) {
+      setIsOpen(true);
+    }
+  }, [hasExecutions]);
 
   if (!isOpen) {
     return null;
   }
-
-  // Display real WebMCP execution events in chronological order
-  const hasExecutions = passport.executionHistory && passport.executionHistory.length > 0;
 
   return (
     <div className="agent-activity-drawer">

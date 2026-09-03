@@ -321,6 +321,81 @@ a {
 }
 
 
+/* Hero CTAs */
+.hero-cta-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 28px;
+  background: var(--adobe-red);
+  color: #ffffff;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.hero-cta-primary:hover {
+  background: #c40d00;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(235, 16, 0, 0.3);
+}
+
+.hero-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 28px;
+  background: transparent;
+  color: var(--adobe-black);
+  border: 1.5px solid var(--adobe-border);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.hero-cta-secondary:hover {
+  border-color: var(--adobe-neutral-mid);
+  background: var(--adobe-neutral-light);
+}
+
+/* Product card explore hint */
+.product-card-explore {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--adobe-red);
+  margin: 0;
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover .product-card-explore {
+  transform: translateX(4px);
+}
+
+/* Capability card explore hint */
+.capability-card-explore {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--adobe-red);
+  margin: 0;
+  align-self: end;
+  transition: transform 0.2s ease;
+}
+
+.capability-card:hover .capability-card-explore {
+  transform: translateX(4px);
+}
+
 /* Product Carousel */
 .product-carousel-container {
   margin: clamp(80px, 12vw, 120px) auto;
@@ -637,17 +712,17 @@ a {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  align-items: center;
+  align-items: stretch;
   position: relative;
 }
 
 .workflow-connector {
   position: absolute;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--adobe-red), transparent);
+  background: linear-gradient(90deg, var(--adobe-border), var(--adobe-red), var(--adobe-border));
   top: 40px;
-  left: calc(100% + 12px);
-  width: calc(100% - 24px);
+  left: 100%;
+  width: 24px; /* spans the grid gap */
 }
 
 .workflow-connector:last-of-type {
@@ -664,6 +739,7 @@ a {
   position: relative;
   z-index: 1;
   transition: all 0.3s ease;
+  align-content: start;
 }
 
 .workflow-step:hover {
@@ -1263,6 +1339,34 @@ a {
   color: var(--adobe-red);
   font-weight: 700;
   flex-shrink: 0;
+}
+
+.plans-category-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--adobe-neutral-light);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.plans-category-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--adobe-neutral-mid);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.plans-category-tab.active {
+  background: #fff;
+  color: var(--adobe-black);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .plans-explanation {
@@ -2221,5 +2325,236 @@ body { background:var(--adobe-canvas); font-family:var(--font-geist-sans), "Adob
 
   .frontdoor-inline-inputs {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Goal Discovery Section ─────────────────────────────────────── */
+
+.goals-section {
+  margin: clamp(60px, 10vw, 100px) auto 0;
+  padding: 0 clamp(16px, 3vw, 48px);
+  max-width: 1440px;
+}
+
+.goals-header {
+  margin-bottom: 32px;
+}
+
+.goals-heading {
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--adobe-black);
+  letter-spacing: -0.03em;
+}
+
+.goals-subtext {
+  font-size: 0.95rem;
+  color: var(--adobe-neutral-mid);
+  margin: 0;
+  max-width: 560px;
+}
+
+.goals-grid {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.goal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 20px 24px;
+  background: var(--adobe-card);
+  border: 1.5px solid var(--adobe-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  min-width: 180px;
+  flex: 1 1 180px;
+  max-width: 240px;
+}
+
+.goal-card:hover {
+  border-color: var(--adobe-red);
+  box-shadow: 0 6px 20px rgba(235, 16, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.goal-card-active {
+  border-color: var(--adobe-red);
+  background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+  box-shadow: 0 8px 24px rgba(235, 16, 0, 0.15);
+}
+
+.goal-card-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.goal-card-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--adobe-black);
+  line-height: 1.2;
+}
+
+.goal-card-workflow {
+  font-size: 0.78rem;
+  color: var(--adobe-neutral-mid);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.goals-hint {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: var(--adobe-neutral-mid);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.goals-clear {
+  background: none;
+  border: 1px solid var(--adobe-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  color: var(--adobe-neutral-mid);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.goals-clear:hover {
+  border-color: var(--adobe-red);
+  color: var(--adobe-red);
+}
+
+/* ─── Capability Card: goal tags & selection states ──────────────── */
+
+.capability-card-highlighted {
+  border-color: var(--adobe-red) !important;
+  box-shadow: 0 8px 24px rgba(235, 16, 0, 0.12) !important;
+}
+
+.capability-card-highlighted::before {
+  opacity: 1 !important;
+}
+
+.capability-card-dimmed {
+  opacity: 0.45;
+}
+
+.capability-goals {
+  margin-top: 4px;
+  display: grid;
+  gap: 8px;
+}
+
+.capability-goals-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--adobe-neutral-mid);
+  text-transform: uppercase;
+}
+
+.capability-goal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.capability-goal-tag {
+  background: var(--adobe-neutral-light);
+  border: 1px solid var(--adobe-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--adobe-neutral-dark);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.capability-goal-tag:hover {
+  border-color: var(--adobe-red);
+  color: var(--adobe-red);
+  background: #fff5f5;
+}
+
+.capability-goal-tag-active {
+  background: var(--adobe-red);
+  border-color: var(--adobe-red);
+  color: #ffffff;
+}
+
+.capability-goal-tag-active:hover {
+  background: #c40d00;
+  color: #ffffff;
+}
+
+/* ─── Plans: goal support list & selection states ────────────────── */
+
+.plans-catalog-card-relevant {
+  border-color: var(--adobe-red) !important;
+  background: linear-gradient(135deg, #fff5f5 0%, #fafaf9 100%) !important;
+  box-shadow: 0 8px 24px rgba(235, 16, 0, 0.1) !important;
+}
+
+.plans-catalog-card-dimmed {
+  opacity: 0.45;
+}
+
+.plans-goal-list {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--adobe-border);
+  display: grid;
+  gap: 5px;
+}
+
+.plans-goal-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--adobe-neutral-mid);
+}
+
+.plans-goal-item-active {
+  color: var(--adobe-black);
+  font-weight: 600;
+}
+
+.plans-goal-check {
+  color: var(--adobe-neutral-mid);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.plans-goal-item-active .plans-goal-check {
+  color: var(--adobe-red);
+}
+
+/* ─── Responsive adjustments ─────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .goals-grid {
+    gap: 12px;
+  }
+
+  .goal-card {
+    min-width: 140px;
+    padding: 16px 18px;
+  }
+
+  .plans-catalog {
+    grid-template-columns: 1fr 1fr;
   }
 }
