@@ -321,6 +321,81 @@ a {
 }
 
 
+/* Hero CTAs */
+.hero-cta-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 28px;
+  background: var(--adobe-red);
+  color: #ffffff;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.hero-cta-primary:hover {
+  background: #c40d00;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(235, 16, 0, 0.3);
+}
+
+.hero-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 28px;
+  background: transparent;
+  color: var(--adobe-black);
+  border: 1.5px solid var(--adobe-border);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.hero-cta-secondary:hover {
+  border-color: var(--adobe-neutral-mid);
+  background: var(--adobe-neutral-light);
+}
+
+/* Product card explore hint */
+.product-card-explore {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--adobe-red);
+  margin: 0;
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover .product-card-explore {
+  transform: translateX(4px);
+}
+
+/* Capability card explore hint */
+.capability-card-explore {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--adobe-red);
+  margin: 0;
+  align-self: end;
+  transition: transform 0.2s ease;
+}
+
+.capability-card:hover .capability-card-explore {
+  transform: translateX(4px);
+}
+
 /* Product Carousel */
 .product-carousel-container {
   margin: clamp(80px, 12vw, 120px) auto;

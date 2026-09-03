@@ -5,13 +5,29 @@ import Image from "next/image";
 export function PremiumHero() {
   return (
     <section className="adobe-hero-centered">
+      {/* Top tagline */}
+      <div className="hero-tagline">
+        <span className="tagline-icon">✦</span>
+        Creative Mission Control
+      </div>
+
       {/* Centered headline */}
-      <h1 className="hero-headline">Your creative ecosystem, understood.</h1>
+      <h1 className="hero-headline">Find the right tool for every creative idea.</h1>
 
       {/* Supporting copy */}
       <p className="hero-supporting-copy">
-        Connect with creative products, workflows and plans — guided by your AI assistant.
+        Explore creative capabilities, real-world workflows, and plans — whether you&apos;re just getting started or leveling up your creative practice.
       </p>
+
+      {/* Human CTAs */}
+      <div className="hero-cta-row">
+        <a href="#capabilities" className="hero-cta-primary" onClick={(e) => { e.preventDefault(); document.getElementById("capabilities")?.scrollIntoView({ behavior: "smooth" }); }}>
+          Explore capabilities
+        </a>
+        <a href="#workflows" className="hero-cta-secondary" onClick={(e) => { e.preventDefault(); document.getElementById("workflows")?.scrollIntoView({ behavior: "smooth" }); }}>
+          See workflows
+        </a>
+      </div>
 
       {/* Centered ecosystem composition */}
       <div className="hero-centered-composition">

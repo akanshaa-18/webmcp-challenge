@@ -11,7 +11,7 @@ interface ToolRegistrationState {
 export function useWebMcpTools(tools: WebMcpTool[]): ToolRegistrationState {
   const modelContext = useMemo(() => getModelContext(), []);
   const [state, setState] = useState<ToolRegistrationState>({
-    available: Boolean(modelContext),
+    available: false,
     registeredTools: [],
   });
 

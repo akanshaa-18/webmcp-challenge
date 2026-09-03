@@ -73,6 +73,9 @@ export function CapabilityGrid() {
           <div
             key={capability.id}
             className={`capability-card ${capability.gridSpan ? `capability-card-${capability.gridSpan}` : ""}`}
+            role="button"
+            tabIndex={0}
+            aria-label={`Explore ${capability.title}`}
           >
             <p className="capability-label">{capability.label}</p>
             <h3 className="capability-title">{capability.title}</h3>

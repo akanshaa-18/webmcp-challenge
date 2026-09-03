@@ -80,7 +80,7 @@ export function PremiumPlansSection() {
       <h2 className="plans-section-heading">Plans & Pricing</h2>
       <p className="plans-section-subtext">
         {!hasToolExecution
-          ? "Ask your assistant for a plan recommendation to see live regional pricing."
+          ? "Find the right plan for how you create."
           : "Your personalized recommendation based on creative needs and location."}
       </p>
 
@@ -161,7 +161,7 @@ export function PremiumPlansSection() {
             const priceState = catalogPrices[plan.id];
 
             return (
-              <div key={plan.id} className="plans-catalog-card">
+              <div key={plan.id} className="plans-catalog-card" role="button" tabIndex={0} aria-label={`View ${plan.name}`}>
                 {planIcon && (
                   <div className="plans-catalog-icon-wrapper">
                     <Image
@@ -190,11 +190,6 @@ export function PremiumPlansSection() {
         </div>
       )}
 
-      <p style={{ fontSize: "0.8rem", color: "var(--adobe-neutral-mid)", marginTop: 16, textAlign: "center" }}>
-        {hasToolExecution && recommendedPlan
-          ? "Personalized plan based on your creative needs. Live pricing from Adobe commerce."
-          : "Plan options. Ask your assistant about your creative goals and location for a personalized recommendation."}
-      </p>
     </section>
   );
 }

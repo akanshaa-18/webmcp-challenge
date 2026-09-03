@@ -2,7 +2,6 @@
 
 import { PremiumHeader } from "@/components/premium-header";
 import { PremiumHero } from "@/components/premium-hero";
-import { ProductCarousel } from "@/components/product-carousel";
 import { CapabilityGrid } from "@/components/capability-grid";
 import { WorkflowShowcase } from "@/components/workflow-showcase";
 import { PremiumPlansSection } from "@/components/premium-plans-section";
@@ -22,10 +21,9 @@ export function PremiumSurface() {
     <>
       <PremiumHeader />
       <PremiumHero />
-      <ProductCarousel />
+      <PremiumPlansSection />
       <CapabilityGrid />
       <WorkflowShowcase />
-      <PremiumPlansSection />
 
       {/* Developer details drawer */}
       <div style={{ padding: "0 clamp(16px, 3vw, 48px)", maxWidth: "1440px", margin: "60px auto 0", borderTop: "1px solid var(--adobe-border)" }}>
