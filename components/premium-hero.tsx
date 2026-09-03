@@ -5,12 +5,6 @@ import Image from "next/image";
 export function PremiumHero() {
   return (
     <section className="adobe-hero-centered">
-      {/* Top tagline */}
-      <div className="hero-tagline">
-        <span className="tagline-icon">✨</span>
-        AI-powered. Human-inspired.
-      </div>
-
       {/* Centered headline */}
       <h1 className="hero-headline">Your creative ecosystem, understood.</h1>
 
@@ -66,13 +60,16 @@ export function PremiumHero() {
           <path d="M 220 480 Q 300 420, 380 340" stroke="url(#premiere-gradient)" strokeWidth="2.5" fill="none" filter="url(#soft-blur)" strokeLinecap="round" />
         </svg>
 
-        {/* Central creative artwork placeholder */}
+        {/* Central creative artwork */}
         <div className="hero-central-artwork">
-          <div className="artwork-placeholder">
-            <div className="placeholder-content">
-              Creative output will be displayed here
-            </div>
-          </div>
+          <Image
+            src="/assets/adobe/firefly-hero.jpg"
+            alt="Creative ecosystem - Firefly illustration"
+            width={420}
+            height={340}
+            priority
+            className="artwork-image"
+          />
         </div>
 
         {/* Product capability nodes */}
@@ -132,12 +129,6 @@ export function PremiumHero() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Agent orchestration text */}
-      <div className="hero-agent-statement">
-        <span className="agent-icon">✨</span>
-        AI Assistant orchestrates it all
       </div>
     </section>
   );

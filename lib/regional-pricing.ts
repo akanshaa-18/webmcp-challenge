@@ -137,9 +137,22 @@ function extractOsi(fragmentPayload: unknown): string | null {
 
   if (payload.fields && typeof payload.fields === "object" && !Array.isArray(payload.fields)) {
     const fields = payload.fields as Record<string, unknown>;
+
+    // Priority 1: Extract OSI from CTA (main action button)
+    // CTAs contain data-checkout-workflow-step which indicates the intended purchase path
+    const ctaOsi = extractOsiFromHtml(fields.ctas);
+    if (ctaOsi) return ctaOsi;
+
+    // Priority 2: Extract OSI from description (secondary reference)
+    const descriptionOsi = extractOsiFromHtml(fields.description);
+    if (descriptionOsi) return descriptionOsi;
+
+    // Priority 3: Use explicit fields.osi as fallback
     if (typeof fields.osi === "string" && fields.osi.trim()) {
       return fields.osi.trim();
     }
+
+    // Priority 4: Extract from inline prices HTML
     const inlinePriceHtml = fields.prices;
     if (inlinePriceHtml && typeof inlinePriceHtml === "object" && "value" in inlinePriceHtml) {
       const html = (inlinePriceHtml as { value?: unknown }).value;
@@ -159,6 +172,32 @@ function extractOsi(fragmentPayload: unknown): string | null {
       }
     }
   }
+
+  return null;
+}
+
+function extractOsiFromHtml(htmlField: unknown): string | null {
+  if (!htmlField || typeof htmlField !== "object") return null;
+  const field = htmlField as { value?: unknown };
+  if (typeof field.value !== "string") return null;
+
+  const html = field.value;
+
+  // Prefer OSI from data-checkout-workflow-step (indicates main CTA)
+  // This is the intended purchase path, not a secondary reference
+  // Match regardless of attribute order by requiring both attributes in same element
+  const workflowMatch = html.match(/data-checkout-workflow-step="[^"]*"[^>]*data-wcs-osi="([^"]+)"|data-wcs-osi="([^"]+)"[^>]*data-checkout-workflow-step="[^"]*"/);
+  if (workflowMatch?.[1] || workflowMatch?.[2]) return workflowMatch[1] || workflowMatch[2];
+
+  // Fall back to any data-wcs-osi in an action link/button
+  // Match regardless of attribute order
+  const actionMatch = html.match(/class="[^"]*(?:accent|primary-link)[^"]*"[^>]*data-wcs-osi="([^"]+)"|data-wcs-osi="([^"]+)"[^>]*class="[^"]*(?:accent|primary-link)[^"]*"/);
+  if (actionMatch?.[1] || actionMatch?.[2]) return actionMatch[1] || actionMatch[2];
+
+  // Last resort: any data-wcs-osi in the HTML
+  // This is conservative: only use if no workflow-step or action class found
+  const anyMatch = html.match(/data-wcs-osi="([^"]+)"/);
+  if (anyMatch?.[1]) return anyMatch[1];
 
   return null;
 }

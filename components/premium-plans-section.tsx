@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useMission } from "@/components/mission-provider";
 import { plansFixture } from "@/lib/fixtures";
+import { getPlanPrice } from "@/lib/plans";
 
 interface PriceState {
   status: "loading" | "ok" | "price_unavailable";
@@ -19,14 +20,37 @@ export function PremiumPlansSection() {
   const [showExplanation, setShowExplanation] = useState(false);
   const [catalogPrices, setCatalogPrices] = useState<Record<string, PriceState>>({});
 
-  // Catalog prices remain unavailable until legitimate context exists
-  // They are only loaded after compare_plan_options or explicit agent context
+  // Load default US pricing on mount
   useEffect(() => {
-    const prices: Record<string, PriceState> = {};
-    for (const plan of plansFixture) {
-      prices[plan.id] = { status: "price_unavailable" };
-    }
-    setCatalogPrices(prices);
+    const loadDefaultPricing = async () => {
+      const prices: Record<string, PriceState> = {};
+
+      for (const plan of plansFixture) {
+        prices[plan.id] = { status: "loading" };
+      }
+      setCatalogPrices(prices);
+
+      // Fetch live US pricing for all plans (US is backend default when no region supplied)
+      for (const plan of plansFixture) {
+        const result = await getPlanPrice(plansFixture, { planId: plan.id, region: "US" });
+
+        if (result.status === "ok") {
+          prices[plan.id] = {
+            status: "ok",
+            formattedPrice: (result as any).data.formattedPrice,
+            currency: (result as any).data.currency,
+          };
+        } else {
+          prices[plan.id] = {
+            status: "price_unavailable",
+          };
+        }
+      }
+
+      setCatalogPrices({ ...prices });
+    };
+
+    loadDefaultPricing();
   }, []);
 
   // Use pricing from compare_plan_options result (already live pricing from WebMCP execution)
@@ -134,6 +158,8 @@ export function PremiumPlansSection() {
               "creative_cloud": { src: "/assets/adobe/creative-community.jpg", alt: "Creative Cloud" },
             };
             const planIcon = planIcons[plan.id];
+            const priceState = catalogPrices[plan.id];
+
             return (
               <div key={plan.id} className="plans-catalog-card">
                 {planIcon && (
@@ -150,11 +176,9 @@ export function PremiumPlansSection() {
                 <p className="plans-catalog-badge">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
                 <h3 className="plans-catalog-name">{plan.name}</h3>
                 <p className="plans-catalog-price">
-                  {catalogPrices[plan.id]?.status === "ok"
-                    ? catalogPrices[plan.id].formattedPrice
-                    : "—"}
+                  {priceState?.status === "loading" ? "Loading…" : priceState?.status === "ok" ? priceState.formattedPrice : "—"}
                 </p>
-                <p className="plans-catalog-period">/month · {plan.supportedRegions[0]}</p>
+                <p className="plans-catalog-period">/month</p>
                 <ul className="plans-catalog-apps">
                   {plan.includedApps.slice(0, 3).map((app) => (
                     <li key={app}>{app}</li>
