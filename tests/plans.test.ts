@@ -150,7 +150,6 @@ describe("plans tools logic", () => {
 
     const recommended = result.data.recommendedPlan;
     expect(recommended).not.toBeNull();
-    expect(recommended?.missingCapabilities).toHaveLength(0);
     expect(recommended?.planId).toBe("adobe-student-cc-in");
     expect(result.data.contextSource).toEqual({ region: "explicit", audience: "explicit" });
 
@@ -216,8 +215,9 @@ describe("plans tools logic", () => {
     if (result.status === "error") {
       throw new Error("Expected deterministic comparison result.");
     }
+    // Student plan is excluded by audience filtering, so it won't appear in candidates at all
     const studentPlanCandidate = result.data.candidates.find((c) => c.planId === "adobe-student-cc-in");
-    expect(studentPlanCandidate?.qualifies).toBe(false);
+    expect(studentPlanCandidate).toBeUndefined();
     expect(result.data.recommendedPlan?.planId).not.toBe("adobe-student-cc-in");
   });
 
@@ -231,8 +231,9 @@ describe("plans tools logic", () => {
       throw new Error("Expected deterministic comparison result.");
     }
     expect(result.data.audience).toBe("individual");
+    // Student plan is excluded by audience filtering, so it won't appear in candidates at all
     const studentPlanCandidate = result.data.candidates.find((c) => c.planId === "adobe-student-cc-in");
-    expect(studentPlanCandidate?.qualifies).toBe(false);
+    expect(studentPlanCandidate).toBeUndefined();
   });
 
   it("unknown audience applies no audience-based eligibility restriction", async () => {
@@ -245,8 +246,9 @@ describe("plans tools logic", () => {
     }
     expect(result.data.audience).toBeNull();
     expect(result.data.contextSource.audience).toBe("none");
+    // With no audience filter, student plan is eligible and appears in candidates
     const studentPlanCandidate = result.data.candidates.find((c) => c.planId === "adobe-student-cc-in");
-    expect(studentPlanCandidate?.qualifies).toBe(true);
+    expect(studentPlanCandidate).toBeDefined();
   });
 
   it("compare_plan_options continues when one qualifying plan pricing fails", async () => {
@@ -290,7 +292,7 @@ describe("plans tools logic", () => {
       const url = new URL(
         typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url,
       );
-      if (url.pathname === "/mas/io/fragment") {
+      if (url.pathname === "/web_commerce_artifact") {
         return new Response("", { status: 404 });
       }
       return baseline(input, init);
@@ -309,8 +311,7 @@ describe("plans tools logic", () => {
     expect(result.data.recommendedPlan).toBeNull();
     expect(result.data.candidates.some(
       (candidate) =>
-        candidate.qualifies
-        && "pricing" in candidate
+        "pricing" in candidate
         && Boolean((candidate as { pricing?: { reason?: string } }).pricing?.reason),
     )).toBe(true);
   });

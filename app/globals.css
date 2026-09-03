@@ -1340,6 +1340,34 @@ a {
   flex-shrink: 0;
 }
 
+.plans-category-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--adobe-neutral-light);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.plans-category-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--adobe-neutral-mid);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.plans-category-tab.active {
+  background: #fff;
+  color: var(--adobe-black);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
 .plans-explanation {
   border: 1px solid var(--adobe-border);
   border-radius: 12px;

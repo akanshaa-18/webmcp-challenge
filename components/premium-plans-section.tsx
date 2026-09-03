@@ -4,76 +4,89 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useMission } from "@/components/mission-provider";
 import { plansFixture } from "@/lib/fixtures";
-import { getPlanPrice } from "@/lib/plans";
+import { Plan } from "@/lib/types";
+import { resolvePlanPrice } from "@/lib/regional-pricing";
+
+type Category = "individual" | "student";
 
 interface PriceState {
-  status: "loading" | "ok" | "price_unavailable";
+  status: "loading" | "ok" | "unavailable";
   formattedPrice?: string;
   currency?: string;
+}
+
+const PLAN_ICONS: Record<string, string> = {
+  "cc-pro-in": "/assets/adobe/products/creative-cloud-mark.svg",
+  "adobe-all-apps-in": "/assets/adobe/products/creative-cloud-mark.svg",
+  "adobe-student-cc-in": "/assets/adobe/products/creative-cloud-mark.svg",
+  "photoshop-in": "/assets/adobe/products/photoshop-mark.svg",
+  "adobe-photography-in": "/assets/adobe/products/photoshop-mark.svg",
+  "premiere-in": "/assets/adobe/products/premiere-mark.svg",
+  "firefly-pro-in": "/assets/adobe/products/firefly-mark.svg",
+  "acrobat-pro-in": "/assets/adobe/products/acrobat-mark.svg",
+  "acrobat-express-in": "/assets/adobe/products/express-mark.svg",
+};
+
+function buildCheckoutUrl(plan: Plan, country: string): string {
+  if (plan.commerceAlias) {
+    return `https://commerce.adobe.com/store/segmentation?pa=${plan.commerceAlias}&co=${country}&lang=en&cli=creative&ctx=if`;
+  }
+  return "https://www.adobe.com/creativecloud/plans.html";
 }
 
 export function PremiumPlansSection() {
   const missionStore = useMission();
   const passport = missionStore.intentPassport;
+  const country = passport.region ?? "IN";
+
+  const [activeCategory, setActiveCategory] = useState<Category>("individual");
+  const [prices, setPrices] = useState<Record<string, PriceState>>({});
   const [recommendedPlan, setRecommendedPlan] = useState<any>(null);
   const [recommendedPlanPrice, setRecommendedPlanPrice] = useState<PriceState>({ status: "loading" });
   const [showExplanation, setShowExplanation] = useState(false);
-  const [catalogPrices, setCatalogPrices] = useState<Record<string, PriceState>>({});
 
-  // Load default US pricing on mount
   useEffect(() => {
-    const loadDefaultPricing = async () => {
-      const prices: Record<string, PriceState> = {};
+    const initial: Record<string, PriceState> = {};
+    for (const plan of plansFixture) {
+      initial[plan.id] = { status: "loading" };
+    }
+    setPrices(initial);
 
-      for (const plan of plansFixture) {
-        prices[plan.id] = { status: "loading" };
+    for (const plan of plansFixture) {
+      if (!plan.osi && !plan.fragmentId) {
+        setPrices((prev) => ({ ...prev, [plan.id]: { status: "unavailable" } }));
+        continue;
       }
-      setCatalogPrices(prices);
-
-      // Fetch live US pricing for all plans (US is backend default when no region supplied)
-      for (const plan of plansFixture) {
-        const result = await getPlanPrice(plansFixture, { planId: plan.id, region: "US" });
-
+      resolvePlanPrice({ planId: plan.id, country, osi: plan.osi, fragmentId: plan.fragmentId }).then((result) => {
         if (result.status === "ok") {
-          prices[plan.id] = {
-            status: "ok",
-            formattedPrice: (result as any).data.formattedPrice,
-            currency: (result as any).data.currency,
-          };
+          setPrices((prev) => ({
+            ...prev,
+            [plan.id]: { status: "ok", formattedPrice: result.data.formattedPrice, currency: result.data.currency },
+          }));
         } else {
-          prices[plan.id] = {
-            status: "price_unavailable",
-          };
+          setPrices((prev) => ({ ...prev, [plan.id]: { status: "unavailable" } }));
         }
-      }
+      });
+    }
+  }, [country]);
 
-      setCatalogPrices({ ...prices });
-    };
-
-    loadDefaultPricing();
-  }, []);
-
-  // Use pricing from compare_plan_options result (already live pricing from WebMCP execution)
   useEffect(() => {
     if (passport.comparePlanResult) {
       setRecommendedPlan(passport.comparePlanResult);
-
-      // Extract pricing already returned by compare_plan_options WebMCP tool
       const pricing = (passport.comparePlanResult as any)?.pricing;
       if (pricing?.formattedPrice) {
-        setRecommendedPlanPrice({
-          status: "ok",
-          formattedPrice: pricing.formattedPrice,
-          currency: pricing.currency,
-        });
+        setRecommendedPlanPrice({ status: "ok", formattedPrice: pricing.formattedPrice, currency: pricing.currency });
       } else {
-        setRecommendedPlanPrice({ status: "price_unavailable" });
+        setRecommendedPlanPrice({ status: "unavailable" });
       }
     }
   }, [passport.comparePlanResult]);
 
-  // Only show personalized state when actual WebMCP tool execution has occurred
   const hasToolExecution = passport.comparePlanResult || recommendedPlanPrice.status === "ok";
+
+  const filteredPlans = plansFixture.filter((plan) =>
+    activeCategory === "student" ? plan.audience === "student" : plan.audience !== "student",
+  );
 
   return (
     <section id="plans" className="plans-section">
@@ -90,11 +103,6 @@ export function PremiumPlansSection() {
             <div className="plans-rec-info">
               <h3 className="plans-rec-name">{recommendedPlan.name}</h3>
               <p className="plans-rec-reason">Covers your creative needs</p>
-              <ul className="plans-rec-capabilities">
-                {recommendedPlan.includedApps?.slice(0, 4).map((app: string) => (
-                  <li key={app}>{app}</li>
-                ))}
-              </ul>
             </div>
             <div className="plans-rec-pricing">
               {recommendedPlanPrice.status === "ok" ? (
@@ -105,7 +113,7 @@ export function PremiumPlansSection() {
                     <div className="plans-rec-source-dot"></div>
                     Live Adobe pricing
                   </div>
-                  <a href={passport.checkoutUrl || "#"} target="_blank" rel="noopener noreferrer" className="plans-rec-cta">
+                  <a href={passport.checkoutUrl || recommendedPlan.checkoutUrl || "#"} target="_blank" rel="noopener noreferrer" className="plans-rec-cta">
                     Continue to checkout →
                   </a>
                 </>
@@ -150,46 +158,60 @@ export function PremiumPlansSection() {
           </details>
         </>
       ) : (
-        <div className="plans-catalog">
-          {plansFixture.map((plan) => {
-            const planIcons: Record<string, { src: string; alt: string }> = {
-              "photo_plus": { src: "/assets/adobe/photoshop-icon.svg", alt: "Photoshop" },
-              "illustrator_plus": { src: "/assets/adobe/illustrator-icon.svg", alt: "Illustrator" },
-              "creative_cloud": { src: "/assets/adobe/creative-community.jpg", alt: "Creative Cloud" },
-            };
-            const planIcon = planIcons[plan.id];
-            const priceState = catalogPrices[plan.id];
+        <>
+          <div className="plans-category-tabs">
+            <button
+              className={`plans-category-tab${activeCategory === "individual" ? " active" : ""}`}
+              onClick={() => setActiveCategory("individual")}
+            >
+              Individual
+            </button>
+            <button
+              className={`plans-category-tab${activeCategory === "student" ? " active" : ""}`}
+              onClick={() => setActiveCategory("student")}
+            >
+              Students &amp; Teachers
+            </button>
+          </div>
 
-            return (
-              <div key={plan.id} className="plans-catalog-card" role="button" tabIndex={0} aria-label={`View ${plan.name}`}>
-                {planIcon && (
-                  <div className="plans-catalog-icon-wrapper">
-                    <Image
-                      src={planIcon.src}
-                      alt={planIcon.alt}
-                      width={48}
-                      height={48}
-                      className="plans-catalog-icon"
-                    />
-                  </div>
-                )}
-                <p className="plans-catalog-badge">{plan.audience === "student" ? "Students & Teachers" : "Individual"}</p>
-                <h3 className="plans-catalog-name">{plan.name}</h3>
-                <p className="plans-catalog-price">
-                  {priceState?.status === "loading" ? "Loading…" : priceState?.status === "ok" ? priceState.formattedPrice : "—"}
-                </p>
-                <p className="plans-catalog-period">/month</p>
-                <ul className="plans-catalog-apps">
-                  {plan.includedApps.slice(0, 3).map((app) => (
-                    <li key={app}>{app}</li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+          <div className="plans-catalog">
+            {filteredPlans.map((plan) => {
+              const priceState = prices[plan.id];
+              const iconSrc = PLAN_ICONS[plan.id];
+              const checkoutUrl = buildCheckoutUrl(plan, country);
+
+              return (
+                <a
+                  key={plan.id}
+                  href={checkoutUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="plans-catalog-card"
+                  aria-label={`View ${plan.name}`}
+                >
+                  {iconSrc && (
+                    <div className="plans-catalog-icon-wrapper">
+                      <Image src={iconSrc} alt={plan.name} width={48} height={48} className="plans-catalog-icon" />
+                    </div>
+                  )}
+                  <p className="plans-catalog-badge">
+                    {plan.audience === "student" ? "Students & Teachers" : "Individual"}
+                  </p>
+                  <h3 className="plans-catalog-name">{plan.name}</h3>
+                  <p className="plans-catalog-price">
+                    {!priceState || priceState.status === "loading"
+                      ? "Loading…"
+                      : priceState.status === "ok"
+                      ? priceState.formattedPrice
+                      : "—"}
+                  </p>
+                  <p className="plans-catalog-period">/month</p>
+                </a>
+              );
+            })}
+          </div>
+        </>
       )}
-
     </section>
   );
 }

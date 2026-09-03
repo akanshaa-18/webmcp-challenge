@@ -148,7 +148,7 @@ export function PlansSurface() {
             ) : null}
             <p className="small-note">{plan.studentEligible ? "Eligible with student verification" : "Standard eligibility"}</p>
             <ul className="plans-feature-list">
-              {plan.includedApps.map((app) => (
+              {(plan.includedApps ?? []).map((app) => (
                 <li key={`${plan.id}-${app}`}>{app}</li>
               ))}
             </ul>

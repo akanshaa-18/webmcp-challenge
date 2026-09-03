@@ -162,6 +162,7 @@ export function createPlanActionTools() {
                 : {}),
               // Store actual tool result for premium UI
               comparePlanResult: resultData.recommendedPlan,
+              checkoutUrl: resultData.recommendedPlan?.checkoutUrl ?? passport.checkoutUrl,
             }));
             recordSuccess(`Plan recommendation: ${resultData.recommendedPlan.name}`);
           }
