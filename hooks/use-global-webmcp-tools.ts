@@ -17,6 +17,7 @@ import {
 import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
 import { useWebMcpTools } from "@/hooks/use-webmcp-tools";
 import { Surface, ToolManifest } from "@/lib/types";
+import * as discoveryLib from "@/lib/webmcp-tool-discovery";
 
 function getResumeDestination(projectId: string): string {
   if (projectId === "kaftan-001") {
@@ -437,6 +438,162 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             region: resolvedRegion,
             checkoutUrl,
             osi,
+          },
+        };
+      },
+    },
+    {
+      name: "discover_surface_tools",
+      description:
+        "Discover all WebMCP tools registered by a specific Adobe surface (Photoshop, Firefly, Illustrator, Premiere Pro, Express, or 'all' for every surface). " +
+        "Returns the tool names, descriptions, and tags so you can understand what each surface can do.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          surfaceName: {
+            type: "string",
+            enum: ["Photoshop", "Firefly", "Illustrator", "Premiere Pro", "Express", "all"],
+            description: "Which Adobe surface's tools to discover",
+          },
+        },
+        required: ["surfaceName"],
+      },
+      annotations: { readOnlyHint: true },
+      execute: (input: { surfaceName?: string }) => {
+        if (!input?.surfaceName) {
+          return toolError("MISSING_SURFACE", "surfaceName is required");
+        }
+        const tools = discoveryLib.discoverSurfaceTools(input.surfaceName);
+        return {
+          status: "ok",
+          data: {
+            surface: input.surfaceName,
+            toolCount: tools.length,
+            tools: tools.map((t: discoveryLib.RegisteredTool) => ({
+              name: t.name,
+              description: t.description,
+              tags: t.tags || [],
+            })),
+          },
+        };
+      },
+    },
+    {
+      name: "recommend_tools_for_problem",
+      description:
+        "Find the best Adobe tools registered across surfaces that solve a specific user problem. " +
+        "Pass a description of what the user is trying to do (e.g., 'lighting doesn't match in my composite', 'create instagram post', 'remove background'). " +
+        "Optionally filter to a specific surface. Returns ranked tools with relevance scores and explanations.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          problem: {
+            type: "string",
+            description: "What problem needs solving? (e.g., 'lighting mismatch', 'resize for social')",
+          },
+          surfaceFilter: {
+            type: "string",
+            description: "Optionally limit to one surface: Photoshop, Firefly, Illustrator, Premiere Pro, or Express",
+          },
+        },
+        required: ["problem"],
+      },
+      annotations: { readOnlyHint: true },
+      execute: (input: { problem?: string; surfaceFilter?: string }) => {
+        if (!input?.problem) {
+          return toolError("MISSING_PROBLEM", "problem description is required");
+        }
+        const matches = discoveryLib.recommendToolsForProblem(input.problem, input.surfaceFilter);
+        return {
+          status: "ok",
+          data: {
+            problem: input.problem,
+            matchCount: matches.length,
+            tools: matches.map((m: discoveryLib.ToolMatch) => ({
+              toolName: m.toolName,
+              surface: m.surface,
+              description: m.description,
+              relevance: `${m.relevance}%`,
+              why: m.why,
+            })),
+          },
+        };
+      },
+    },
+    {
+      name: "suggest_workflow_from_goal",
+      description:
+        "Break down a creative goal into workflow steps across Adobe surfaces. " +
+        "Pass the user's high-level creative goal (e.g., 'clean up product photos and create campaign', 'make video with captions'). " +
+        "Returns recommended sequence of surfaces and tools based on what's available.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          goal: {
+            type: "string",
+            description: "What is the creative goal? (e.g., 'create campaign imagery from product photos')",
+          },
+        },
+        required: ["goal"],
+      },
+      annotations: { readOnlyHint: true },
+      execute: (input: { goal?: string }) => {
+        if (!input?.goal) {
+          return toolError("MISSING_GOAL", "goal is required");
+        }
+        const workflow = discoveryLib.suggestWorkflowFromGoal(input.goal);
+        return {
+          status: "ok",
+          data: {
+            goal: input.goal,
+            stepCount: workflow.length,
+            workflow: workflow.map((step: discoveryLib.WorkflowStep) => ({
+              step: step.step,
+              surface: step.surface,
+              tools: step.suggestedTools.map((t) => t.name),
+              reasoning: step.reasoning,
+              estimatedTime: step.estimatedTime,
+            })),
+          },
+        };
+      },
+    },
+    {
+      name: "get_tool_redirect_url",
+      description:
+        "Generate a URL to open a specific tool in its Adobe surface. " +
+        "Pass the tool name (e.g., 'harmonize'), surface name (e.g., 'Photoshop'), and optional context about what the user wants to do. " +
+        "Returns a URL you can use to redirect the user.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          toolName: {
+            type: "string",
+            description: "The tool name (e.g., 'harmonize', 'generative_expand')",
+          },
+          surface: {
+            type: "string",
+            description: "The Adobe surface (e.g., 'Photoshop', 'Firefly')",
+          },
+          context: {
+            type: "string",
+            description: "Optional context about what the user wants to do with this tool",
+          },
+        },
+        required: ["toolName", "surface"],
+      },
+      annotations: { readOnlyHint: true },
+      execute: (input: { toolName?: string; surface?: string; context?: string }) => {
+        if (!input?.toolName || !input?.surface) {
+          return toolError("MISSING_PARAMS", "toolName and surface are required");
+        }
+        const url = discoveryLib.getToolRedirectUrl(input.toolName, input.surface, input.context);
+        return {
+          status: "ok",
+          data: {
+            toolName: input.toolName,
+            surface: input.surface,
+            redirectUrl: url,
           },
         };
       },
