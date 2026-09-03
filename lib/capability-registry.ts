@@ -2,35 +2,11 @@ import { ToolManifest } from "@/lib/types";
 
 export const toolManifests: ToolManifest[] = [
   {
-    toolName: "public.build_adobe_workflow",
-    ownerSurface: "Adobe Agentic Front Door",
-    description:
-      "Compose a multi-step creative workflow across supported public product capabilities.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        task: { type: "string" },
-      },
-      required: ["task"],
-    },
-    requiredContext: ["task", "intent.userConstraints"],
-    destinationRoute: "/cc-home",
-    executionMode: "global-discovery",
-    readOnly: true,
-    audience: "public",
-  },
-  {
-    toolName: "public.find_product_for_task",
+    toolName: "public.adobe_directory",
     ownerSurface: "Global",
-    description: "Recommend Adobe products for a task using the public reference snapshot catalog.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        task: { type: "string" },
-      },
-      required: ["task"],
-    },
-    requiredContext: ["task"],
+    description: "Returns all Adobe app capabilities with descriptions, task types, and cross-app continuation paths. Use this to discover which Adobe product handles a given feature — read the full catalog and pick the best match based on the user's goal.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+    requiredContext: [],
     destinationUrl: "https://www.adobe.com/",
     executionMode: "global-discovery",
     readOnly: true,
@@ -54,47 +30,20 @@ export const toolManifests: ToolManifest[] = [
     audience: "public",
   },
   {
-    toolName: "public.get_product_system_requirements",
+    toolName: "public.check_os_compatibility",
     ownerSurface: "Global",
     description:
-      "Return platform-specific product system requirements from the public reference snapshot catalog.",
+      "Check whether a specific OS version meets Adobe's minimum requirements for a Creative Cloud desktop app. Supports macos and windows only.",
     inputSchema: {
       type: "object",
       properties: {
-        productId: { type: "string" },
-        platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
+        productId: { type: "string", description: "Catalog product ID, e.g. \"photoshop\", \"illustrator\", \"premiere-pro\"." },
+        platform: { type: "string", enum: ["macos", "windows"] },
+        osVersion: { type: "string", description: "User's OS version string, e.g. \"14.5\" or \"10.0.22621\"." },
       },
-      required: ["productId", "platform"],
+      required: ["productId", "platform", "osVersion"],
     },
-    requiredContext: ["productId", "platform"],
-    destinationUrl: "https://helpx.adobe.com/",
-    executionMode: "global-discovery",
-    readOnly: true,
-    audience: "public",
-  },
-  {
-    toolName: "public.check_device_compatibility",
-    ownerSurface: "Global",
-    description: "Check product compatibility against provided device context using snapshot requirements.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        productId: { type: "string" },
-        platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
-        device: {
-          type: "object",
-          properties: {
-            osVersion: { type: "string" },
-            memoryGB: { type: "number" },
-            freeStorageGB: { type: "number" },
-            processor: { type: "string" },
-            gpu: { type: "string" },
-          },
-        },
-      },
-      required: ["productId", "platform", "device"],
-    },
-    requiredContext: ["productId", "platform", "device"],
+    requiredContext: ["productId", "platform", "osVersion"],
     destinationUrl: "https://helpx.adobe.com/",
     executionMode: "global-discovery",
     readOnly: true,
@@ -301,100 +250,3 @@ export function runtimeToolNameForManifest(toolName: string): string {
   return segments.length > 1 ? segments[segments.length - 1] : toolName;
 }
 
-export function findToolsForTask(task: string): {
-  recommendedTool: ToolManifest | null;
-  alternatives: ToolManifest[];
-} {
-  const normalizedTask = task.toLowerCase();
-  const publicTools = toolManifests.filter((tool) => tool.audience === "public");
-
-  if (
-    normalizedTask.includes("workflow") ||
-    normalizedTask.includes("which adobe apps should i use") ||
-    (normalizedTask.includes("background") && normalizedTask.includes("instagram"))
-  ) {
-    const recommendedTool = describeCapability("public.build_adobe_workflow");
-    return {
-      recommendedTool,
-      alternatives: publicTools.filter((tool) => tool.toolName !== "public.build_adobe_workflow"),
-    };
-  }
-
-  if (
-    normalizedTask.includes("which adobe app") ||
-    normalizedTask.includes("which product") ||
-    normalizedTask.includes("what product should") ||
-    normalizedTask.includes("right adobe product")
-  ) {
-    const recommendedTool = describeCapability("public.find_product_for_task");
-    return {
-      recommendedTool,
-      alternatives: publicTools.filter((tool) => tool.toolName !== "public.find_product_for_task"),
-    };
-  }
-
-  if (
-    normalizedTask.includes("what can firefly do") ||
-    normalizedTask.includes("what can photoshop do") ||
-    normalizedTask.includes("what can illustrator do") ||
-    normalizedTask.includes("what can premiere pro do") ||
-    normalizedTask.includes("what can premiere do")
-  ) {
-    const recommendedTool = describeCapability("public.get_product_capabilities");
-    return {
-      recommendedTool,
-      alternatives: publicTools.filter((tool) => tool.toolName !== "public.get_product_capabilities"),
-    };
-  }
-
-  if (
-    normalizedTask.includes("will ") &&
-    normalizedTask.includes(" run") &&
-    (normalizedTask.includes("macos") ||
-      normalizedTask.includes("macbook") ||
-      normalizedTask.includes("mac") ||
-      normalizedTask.includes("windows"))
-  ) {
-    const recommendedTool = describeCapability("public.check_device_compatibility");
-    return {
-      recommendedTool,
-      alternatives: [
-        ...publicTools.filter((tool) => tool.toolName === "public.get_product_system_requirements"),
-        ...publicTools.filter((tool) => tool.toolName !== "public.check_device_compatibility"),
-      ],
-    };
-  }
-
-  if (normalizedTask.includes("system requirement") || normalizedTask.includes("requirements")) {
-    const recommendedTool = describeCapability("public.get_product_system_requirements");
-    return {
-      recommendedTool,
-      alternatives: publicTools.filter(
-        (tool) => tool.toolName !== "public.get_product_system_requirements",
-      ),
-    };
-  }
-
-  if (
-    normalizedTask.includes("plan") ||
-    normalizedTask.includes("pricing") ||
-    normalizedTask.includes("price") ||
-    normalizedTask.includes("adobe plan") ||
-    normalizedTask.includes("compare adobe plans")
-  ) {
-    const recommendedTool = describeCapability("adobe_plans.compare_plan_options");
-    return {
-      recommendedTool,
-      alternatives: publicTools.filter((tool) => tool.toolName !== "adobe_plans.compare_plan_options"),
-    };
-  }
-
-  // Tasks that match ONLY legacy-private tools (background, business card, duplicate cleanup)
-  // do not return a legacy recommendation; return null instead.
-  // Public discovery should not expose legacy tools as fallbacks.
-
-  return {
-    recommendedTool: null,
-    alternatives: publicTools,
-  };
-}

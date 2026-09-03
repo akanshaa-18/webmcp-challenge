@@ -88,10 +88,12 @@ describe("integration journey checkpoint", () => {
     });
     await flush();
 
-    const workflow = await invokeTool(tools, "build_adobe_workflow", {
-      task: "remove background and create instagram post",
-    });
-    expect(workflow.status).toBe("ok");
+    const featureDiscovery = await invokeTool(tools, "adobe_directory");
+    expect(featureDiscovery.status).toBe("ok");
+    expect(
+      (featureDiscovery.data as { capabilities?: Array<{ capabilityId: string }> } | undefined)
+        ?.capabilities?.some((c) => c.capabilityId === "firefly-background-transformation"),
+    ).toBe(true);
 
     const composeButton = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent?.trim() === "Compose creative workflow",
@@ -113,7 +115,6 @@ describe("integration journey checkpoint", () => {
     expect(pushSpy).not.toHaveBeenCalled();
     const handoffId = getMissionRuntime()?.intentPassport.handoffTrail.at(-1) ?? "";
     const handoff = getMissionRuntime()?.getHandoff(handoffId ?? "");
-    expect(handoff?.selectedWorkflowId).toBe("wf-firefly-express");
     expect(handoff?.selectedWorkflowStep).toBe("firefly-background-transformation");
     expect(handoff?.selectedDestination).toBe("https://firefly.adobe.com/");
 
@@ -141,15 +142,6 @@ describe("integration journey checkpoint", () => {
     // (which fabricated IN/Bangalore/student from a fixture) has been removed.
     expect(contextData?.intent?.region).toBeNull();
     expect(contextData?.intent?.audience).toBeNull();
-
-    const planDiscovery = await invokeTool(tools, "find_tools_for_task", {
-      task: "find the right Adobe plan",
-    });
-    const planDiscoveryData = planDiscovery.data as
-      | { recommendedTool: string; destination: string }
-      | undefined;
-    expect(planDiscoveryData?.recommendedTool).toBe("adobe_plans.compare_plan_options");
-    expect(planDiscoveryData?.destination).toBe("/plans");
 
     const planHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "adobe_plans.compare_plan_options",
@@ -219,12 +211,12 @@ describe("integration journey checkpoint", () => {
     const search = await invokeTool(tools, "search_files", { query: "Kaftan logo" });
     expect(search.status).toBe("ok");
 
-    // Legacy firefly/express tasks no longer appear in public discovery after Phase 3.
-    // Verify that discovery returns null for background-change tasks (no public equivalent).
-    const backgroundDiscovery = await invokeTool(tools, "find_tools_for_task", {
-      task: "change image background",
-    });
-    expect(backgroundDiscovery.data?.recommendedTool).toBeNull();
+    const fireflyDiscovery = await invokeTool(tools, "adobe_directory");
+    expect(fireflyDiscovery.status).toBe("ok");
+    expect(
+      (fireflyDiscovery.data as { capabilities?: Array<{ capabilityId: string }> } | undefined)
+        ?.capabilities?.some((c) => c.capabilityId === "firefly-background-transformation"),
+    ).toBe(true);
 
     // Within a mission context, legacy tools can still be handoff'd directly (not via discovery).
     const fireflyHandoff = await invokeTool(tools, "prepare_handoff", {
@@ -253,11 +245,12 @@ describe("integration journey checkpoint", () => {
     expect(getMissionRuntime()?.mission.currentAssetId).toBe("kaftan-logo-background-v1");
     expect(getMissionRuntime()?.mission.completedSteps).toContain("change_background");
 
-    // Business card discovery also returns null (no public equivalent).
-    const businessCardDiscovery = await invokeTool(tools, "find_tools_for_task", {
-      task: "create business card",
-    });
-    expect(businessCardDiscovery.data?.recommendedTool).toBeNull();
+    const expressDiscovery = await invokeTool(tools, "adobe_directory");
+    expect(expressDiscovery.status).toBe("ok");
+    expect(
+      (expressDiscovery.data as { capabilities?: Array<{ capabilityId: string }> } | undefined)
+        ?.capabilities?.some((c) => c.capabilityId === "express-business-card-layout"),
+    ).toBe(true);
 
     // Direct handoff to express (mission context).
     const expressHandoff = await invokeTool(tools, "prepare_handoff", {

@@ -1,4 +1,5 @@
 import {
+  getAllCapabilities,
   getCapabilitiesByProductId,
   hasKnownProduct,
   rankCapabilitiesForTask,
@@ -44,6 +45,36 @@ function hasDeviceData(device?: CompatibilityDeviceContext): boolean {
       device.processor ||
       device.gpu,
   );
+}
+
+export function adobeDirectory() {
+  const capabilities = getAllCapabilities()
+    .map((capability) => {
+      const product = getPublicProductById(capability.productId);
+      if (!product) return null;
+      return {
+        capabilityId: capability.id,
+        capabilityName: capability.name,
+        productId: product.id,
+        productName: product.name,
+        description: capability.description,
+        taskTypes: capability.taskTypes,
+        inputs: capability.inputs,
+        outputs: capability.outputs,
+        compatibleNextCapabilities: capability.compatibleNextCapabilities,
+        destinationUrl: capability.destinationUrl,
+      };
+    })
+    .filter((c): c is NonNullable<typeof c> => c !== null);
+
+  return {
+    status: "ok" as const,
+    data: {
+      selectionHint: "Match the user's request against each capability's taskTypes and description. Pick the capability whose taskTypes most closely match the user's intent. Do not rely on general knowledge — use only the taskTypes and description fields below.",
+      capabilities,
+      dataSource: "public_reference_snapshot" as const,
+    },
+  };
 }
 
 export function findProductForTask(task?: string) {

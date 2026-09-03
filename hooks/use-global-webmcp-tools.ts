@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   describeCapability,
-  findToolsForTask,
   runtimeToolNameForManifest,
   toolManifests,
 } from "@/lib/capability-registry";
@@ -12,12 +11,10 @@ import { toolError } from "@/lib/errors";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import { trackToolExecution } from "@/lib/execution-tracker";
 import {
-  checkDeviceCompatibility,
-  findProductForTask,
+  adobeDirectory,
   getProductCapabilities,
-  getProductSystemRequirements,
 } from "@/lib/public-intelligence";
-import { buildAdobeWorkflow } from "@/lib/workflow-composer";
+import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
 import { useWebMcpTools } from "@/hooks/use-webmcp-tools";
 import { Surface, ToolManifest } from "@/lib/types";
 
@@ -93,139 +90,19 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
               runtimeToolName: runtimeToolNameForManifest(manifest.toolName),
             })),
           namingConvention:
-            "Registry uses namespaced manifest IDs (for example public.build_adobe_workflow); WebMCP runtime tools are registered by route as unprefixed names (for example build_adobe_workflow).",
+            "Registry uses namespaced manifest IDs (for example public.adobe_directory); WebMCP runtime tools are registered by route as unprefixed names (for example adobe_directory).",
         },
       }),
     },
     {
-      name: "find_tools_for_task",
-      description: "Find the best capability for a user task before creating a surface handoff.",
-      inputSchema: {
-        type: "object",
-        properties: { task: { type: "string" } },
-        required: ["task"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: { task?: string }) => {
-        if (!input?.task) {
-          return toolError("MISSING_REQUIRED_CONTEXT", "The task field is required.");
-        }
-        const runtime = getMissionRuntime();
-        const result = findToolsForTask(input.task);
-        if (runtime && result.recommendedTool) {
-          runtime.updateIntentPassport((passport) => {
-            const recommended = result.recommendedTool?.toolName;
-            const nextDiscovered = recommended && !passport.discoveredCapabilities.includes(recommended)
-              ? [...passport.discoveredCapabilities, recommended]
-              : passport.discoveredCapabilities;
-            return {
-              ...passport,
-              requirements: input.task ? [input.task] : passport.requirements,
-              discoveredCapabilities: nextDiscovered,
-              selectedDestination:
-                result.recommendedTool?.destinationRoute ?? result.recommendedTool?.destinationUrl,
-            };
-          });
-        }
-        return {
-          status: "ok",
-          data: {
-            recommendedTool: result.recommendedTool?.toolName ?? null,
-            ownerSurface: result.recommendedTool?.ownerSurface ?? null,
-            destination:
-              result.recommendedTool?.destinationRoute ?? result.recommendedTool?.destinationUrl ?? null,
-            requiredContext: result.recommendedTool?.requiredContext ?? [],
-            alternatives: result.alternatives.map((tool) => tool.toolName),
-          },
-        };
-      },
-    },
-    {
-      name: "build_adobe_workflow",
+      name: "adobe_directory",
       description:
-        "Compose a multi-step Adobe workflow for a user's creative goal using publicly described Adobe capabilities and their dependencies.",
-      inputSchema: {
-        type: "object",
-        properties: { task: { type: "string" } },
-        required: ["task"],
-      },
+        "Returns the full Adobe capability catalog. " +
+        "Call this first when the user asks which Adobe app to use for a task. " +
+        "After calling it, scan EVERY capability's taskTypes array and description to find the closest semantic match to the user's request. " +
+        "Do NOT default to Firefly or any other product based on prior knowledge — always base your recommendation on the taskTypes and description fields in the response.",
       annotations: { readOnlyHint: true },
-      execute: (input: { task?: string }) => {
-        const { recordSuccess, recordError } = trackToolExecution("build_adobe_workflow");
-        const runtime = getMissionRuntime();
-        const result = buildAdobeWorkflow(input?.task, runtime?.intentPassport.userConstraints ?? []);
-        if (result.status !== "ok") {
-          if (result.status === "error") {
-            recordError("WORKFLOW_FAILED", (result as any).data?.reason || "Unknown error");
-          }
-          return result;
-        }
-
-        if (runtime) {
-          const workflowSteps = result.data.steps.map((step: any) => ({
-            productName: step.productName,
-            initials: step.productInitials || step.productName.substring(0, 2).toUpperCase(),
-            color: step.productColor || "#001AFF",
-            task: step.capability,
-            produces: step.produces || "Output",
-            destinationUrl: step.destinationUrl,
-          }));
-
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            userGoal: input?.task ?? passport.userGoal,
-            requirements: result.data.steps.map((step) => step.capability),
-            discoveredCapabilities: Array.from(
-              new Set([
-                ...passport.discoveredCapabilities,
-                "public.build_adobe_workflow",
-                ...result.data.steps.map((step) => step.capabilityId),
-              ]),
-            ),
-            selectedProducts: result.data.steps.map((step) => step.productId),
-            selectedWorkflowId: result.data.workflowId,
-            selectedWorkflowStep: result.data.steps[0]?.capabilityId,
-            recommendedWorkflow: result.data.steps.map((step) => step.productName).join(" → "),
-            selectedDestination: result.data.recommendedStart.destinationUrl,
-            actualWorkflowSteps: workflowSteps,
-            workflowFromTool: true,
-          }));
-          recordSuccess(`Workflow composed: ${workflowSteps.length} steps`);
-        }
-
-        return result;
-      },
-    },
-    {
-      name: "find_product_for_task",
-      description: "Recommend Adobe products for a task using the public reference snapshot catalog.",
-      inputSchema: {
-        type: "object",
-        properties: { task: { type: "string" } },
-        required: ["task"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: { task?: string }) => {
-        const result = findProductForTask(input?.task);
-        if (result.status !== "ok") {
-          return result;
-        }
-
-        const runtime = getMissionRuntime();
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            requirements: input?.task ? [input.task] : passport.requirements,
-            discoveredCapabilities: passport.discoveredCapabilities.includes("public.find_product_for_task")
-              ? passport.discoveredCapabilities
-              : [...passport.discoveredCapabilities, "public.find_product_for_task"],
-            selectedProducts: result.data.recommendations.map((recommendation) => recommendation.productId),
-            selectedDestination: result.data.recommendations[0]?.destinationUrl ?? passport.selectedDestination,
-          }));
-        }
-
-        return result;
-      },
+      execute: () => adobeDirectory(),
     },
     {
       name: "get_product_capabilities",
@@ -253,99 +130,6 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
               ? passport.selectedProducts
               : [...passport.selectedProducts, result.data.productId],
             selectedDestination: result.data.destinationUrl,
-          }));
-        }
-
-        return result;
-      },
-    },
-    {
-      name: "get_product_system_requirements",
-      description:
-        "Return platform-specific product requirements from the public reference snapshot catalog.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          productId: { type: "string" },
-          platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
-        },
-        required: ["productId", "platform"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: { productId?: string; platform?: string }) => {
-        const result = getProductSystemRequirements(input?.productId, input?.platform);
-        if (result.status !== "ok") {
-          return result;
-        }
-
-        const runtime = getMissionRuntime();
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            discoveredCapabilities: passport.discoveredCapabilities.includes(
-              "public.get_product_system_requirements",
-            )
-              ? passport.discoveredCapabilities
-              : [...passport.discoveredCapabilities, "public.get_product_system_requirements"],
-            selectedProducts: input?.productId && !passport.selectedProducts.includes(input.productId)
-              ? [...passport.selectedProducts, input.productId]
-              : passport.selectedProducts,
-          }));
-        }
-
-        return result;
-      },
-    },
-    {
-      name: "check_device_compatibility",
-      description: "Check device compatibility against snapshot requirements for one Adobe product.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          productId: { type: "string" },
-          platform: { type: "string", enum: ["macos", "windows", "web", "ios", "android"] },
-          device: {
-            type: "object",
-            properties: {
-              osVersion: { type: "string" },
-              memoryGB: { type: "number" },
-              freeStorageGB: { type: "number" },
-              processor: { type: "string" },
-              gpu: { type: "string" },
-            },
-          },
-        },
-        required: ["productId", "platform", "device"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: {
-        productId?: string;
-        platform?: string;
-        device?: {
-          osVersion?: string;
-          memoryGB?: number;
-          freeStorageGB?: number;
-          processor?: string;
-          gpu?: string;
-        };
-      }) => {
-        const result = checkDeviceCompatibility(input?.productId, input?.platform, input?.device);
-        if (result.status !== "ok") {
-          return result;
-        }
-
-        const runtime = getMissionRuntime();
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            discoveredCapabilities: passport.discoveredCapabilities.includes(
-              "public.check_device_compatibility",
-            )
-              ? passport.discoveredCapabilities
-              : [...passport.discoveredCapabilities, "public.check_device_compatibility"],
-            selectedProducts: input?.productId && !passport.selectedProducts.includes(input.productId)
-              ? [...passport.selectedProducts, input.productId]
-              : passport.selectedProducts,
           }));
         }
 
@@ -485,6 +269,52 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             handoff,
           },
         };
+      },
+    },
+    {
+      name: "check_os_compatibility",
+      description:
+        "Check whether a specific OS version meets Adobe's minimum requirements for a Creative Cloud desktop app. " +
+        "Supports macos and windows only — mobile platforms (ios, android) are not supported because Adobe does not " +
+        "publish minimum OS version ranges for mobile apps. If the user asks about mobile compatibility, " +
+        "inform them this check is unavailable and suggest checking the Adobe app's App Store or Google Play listing. " +
+        "Pass productId (e.g. \"photoshop\"), platform (\"macos\" or \"windows\"), " +
+        "and the user's osVersion (e.g. \"14.5\"). Returns compatible: true/false and the supported OS ranges.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          productId: { type: "string", description: "Catalog product ID, e.g. \"photoshop\", \"illustrator\", \"premiere-pro\"." },
+          platform: { type: "string", enum: ["macos", "windows"] },
+          osVersion: { type: "string", description: "User's OS version string, e.g. \"14.5\" or \"10.0.22621\"." },
+        },
+        required: ["productId", "platform", "osVersion"],
+      },
+      annotations: { readOnlyHint: true },
+      execute: async (input: { productId?: string; platform?: string; osVersion?: string }) => {
+        const { productId, platform, osVersion } = input ?? {};
+        if (!productId || !platform || !osVersion) {
+          return toolError("MISSING_REQUIRED_CONTEXT", "productId, platform, and osVersion are all required.");
+        }
+        if (platform !== "macos" && platform !== "windows") {
+          return toolError("UNSUPPORTED_PLATFORM", "platform must be \"macos\" or \"windows\".");
+        }
+        const sapCode = PRODUCT_TO_SAP[productId];
+        if (!sapCode) {
+          return toolError(
+            "UNKNOWN_PRODUCT",
+            `Unknown productId: "${productId}". Known products: ${Object.keys(PRODUCT_TO_SAP).join(", ")}.`,
+          );
+        }
+        try {
+          const ranges = await fetchOsRanges(sapCode, platform);
+          const compatible = isCompatible(osVersion, ranges);
+          return {
+            status: "ok",
+            data: { productId, sapCode, platform, osVersion, compatible, supportedRanges: ranges },
+          };
+        } catch (e) {
+          return toolError("FFC_ERROR", e instanceof Error ? e.message : String(e));
+        }
       },
     },
     {
