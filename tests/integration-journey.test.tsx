@@ -88,10 +88,13 @@ describe("integration journey checkpoint", () => {
     });
     await flush();
 
-    const workflow = await invokeTool(tools, "build_adobe_workflow", {
-      task: "remove background and create instagram post",
+    const featureDiscovery = await invokeTool(tools, "find_apps_for_feature", {
+      feature: "remove background",
     });
-    expect(workflow.status).toBe("ok");
+    expect(featureDiscovery.status).toBe("ok");
+    expect(
+      (featureDiscovery.data as { matches?: Array<{ productId: string }> } | undefined)?.matches?.[0]?.productId,
+    ).toBe("firefly");
 
     const composeButton = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent?.trim() === "Compose creative workflow",
@@ -113,7 +116,6 @@ describe("integration journey checkpoint", () => {
     expect(pushSpy).not.toHaveBeenCalled();
     const handoffId = getMissionRuntime()?.intentPassport.handoffTrail.at(-1) ?? "";
     const handoff = getMissionRuntime()?.getHandoff(handoffId ?? "");
-    expect(handoff?.selectedWorkflowId).toBe("wf-firefly-express");
     expect(handoff?.selectedWorkflowStep).toBe("firefly-background-transformation");
     expect(handoff?.selectedDestination).toBe("https://firefly.adobe.com/");
 
@@ -139,15 +141,6 @@ describe("integration journey checkpoint", () => {
     expect(region.data?.region).toBe("IN");
     expect(region.data?.city).toBe("Bangalore");
     expect(region.data?.student).toBe(true);
-
-    const planDiscovery = await invokeTool(tools, "find_tools_for_task", {
-      task: "find the right Adobe plan",
-    });
-    const planDiscoveryData = planDiscovery.data as
-      | { recommendedTool: string; destination: string }
-      | undefined;
-    expect(planDiscoveryData?.recommendedTool).toBe("adobe_plans.compare_plan_options");
-    expect(planDiscoveryData?.destination).toBe("/plans");
 
     const planHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "adobe_plans.compare_plan_options",
@@ -209,10 +202,11 @@ describe("integration journey checkpoint", () => {
     const search = await invokeTool(tools, "search_files", { query: "Kaftan logo" });
     expect(search.status).toBe("ok");
 
-    const fireflyDiscovery = await invokeTool(tools, "find_tools_for_task", {
-      task: "change image background",
+    const fireflyDiscovery = await invokeTool(tools, "find_apps_for_feature", {
+      feature: "change image background",
     });
-    expect(fireflyDiscovery.data?.recommendedTool).toBe("firefly.change_background");
+    expect(fireflyDiscovery.status).toBe("ok");
+    expect((fireflyDiscovery.data as { matches?: Array<{ productId: string }> } | undefined)?.matches?.[0]?.productId).toBe("firefly");
 
     const fireflyHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "firefly.change_background",
@@ -240,10 +234,11 @@ describe("integration journey checkpoint", () => {
     expect(getMissionRuntime()?.mission.currentAssetId).toBe("kaftan-logo-background-v1");
     expect(getMissionRuntime()?.mission.completedSteps).toContain("change_background");
 
-    const expressDiscovery = await invokeTool(tools, "find_tools_for_task", {
-      task: "create business card",
+    const expressDiscovery = await invokeTool(tools, "find_apps_for_feature", {
+      feature: "create business card",
     });
-    expect(expressDiscovery.data?.recommendedTool).toBe("express.create_business_card");
+    expect(expressDiscovery.status).toBe("ok");
+    expect((expressDiscovery.data as { matches?: Array<{ productId: string }> } | undefined)?.matches?.[0]?.productId).toBe("express");
 
     const expressHandoff = await invokeTool(tools, "prepare_handoff", {
       toolName: "express.create_business_card",

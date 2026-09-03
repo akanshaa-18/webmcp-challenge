@@ -165,8 +165,8 @@ describe("intent passport transition", () => {
     });
     await flush();
 
-    const found = await invokeTool(tools, "find_product_for_task", {
-      task: "Which Adobe app should I use to remove a background?",
+    const found = await invokeTool(tools, "find_apps_for_feature", {
+      feature: "remove background",
     });
     expect(found.status).toBe("ok");
 
@@ -175,21 +175,14 @@ describe("intent passport transition", () => {
     });
     expect(capabilities.status).toBe("ok");
 
-    const workflow = await invokeTool(tools, "build_adobe_workflow", {
-      task: "remove background and create instagram post",
-    });
-    expect(workflow.status).toBe("ok");
-
     const runtime = getMissionRuntime();
     expect(runtime?.intentPassport.discoveredCapabilities).toEqual(
       expect.arrayContaining([
-        "public.find_product_for_task",
+        "firefly-background-transformation",
         "public.get_product_capabilities",
-        "public.build_adobe_workflow",
       ]),
     );
     expect(runtime?.intentPassport.selectedProducts).toContain("firefly");
-    expect(runtime?.intentPassport.selectedWorkflowId).toBe("wf-firefly-express");
     expect(runtime?.intentPassport.selectedDestination).toBe("https://firefly.adobe.com/");
 
     await act(async () => {

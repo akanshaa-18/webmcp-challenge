@@ -2,35 +2,17 @@ import { ToolManifest } from "@/lib/types";
 
 export const toolManifests: ToolManifest[] = [
   {
-    toolName: "public.build_adobe_workflow",
-    ownerSurface: "Adobe Agentic Front Door",
-    description:
-      "Compose a multi-step creative workflow across supported public product capabilities.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        task: { type: "string" },
-      },
-      required: ["task"],
-    },
-    requiredContext: ["task", "intent.userConstraints"],
-    destinationRoute: "/cc-home",
-    executionMode: "global-discovery",
-    readOnly: true,
-    audience: "public",
-  },
-  {
-    toolName: "public.find_product_for_task",
+    toolName: "public.find_apps_for_feature",
     ownerSurface: "Global",
-    description: "Recommend Adobe products for a task using the public reference snapshot catalog.",
+    description: "Find which Adobe app handles a feature and what apps can follow it in a multi-step sequence. Returns ranked capability matches with continuations for cross-app workflows.",
     inputSchema: {
       type: "object",
       properties: {
-        task: { type: "string" },
+        feature: { type: "string" },
       },
-      required: ["task"],
+      required: ["feature"],
     },
-    requiredContext: ["task"],
+    requiredContext: ["feature"],
     destinationUrl: "https://www.adobe.com/",
     executionMode: "global-discovery",
     readOnly: true,
@@ -272,115 +254,3 @@ export function runtimeToolNameForManifest(toolName: string): string {
   return segments.length > 1 ? segments[segments.length - 1] : toolName;
 }
 
-export function findToolsForTask(task: string): {
-  recommendedTool: ToolManifest | null;
-  alternatives: ToolManifest[];
-} {
-  const normalizedTask = task.toLowerCase();
-
-  if (
-    normalizedTask.includes("workflow") ||
-    normalizedTask.includes("which adobe apps should i use") ||
-    (normalizedTask.includes("background") && normalizedTask.includes("instagram"))
-  ) {
-    const recommendedTool = describeCapability("public.build_adobe_workflow");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.build_adobe_workflow"),
-    };
-  }
-
-  if (
-    normalizedTask.includes("which adobe app") ||
-    normalizedTask.includes("which product") ||
-    normalizedTask.includes("what product should") ||
-    normalizedTask.includes("right adobe product")
-  ) {
-    const recommendedTool = describeCapability("public.find_product_for_task");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.find_product_for_task"),
-    };
-  }
-
-  if (
-    normalizedTask.includes("what can firefly do") ||
-    normalizedTask.includes("what can photoshop do") ||
-    normalizedTask.includes("what can illustrator do") ||
-    normalizedTask.includes("what can premiere pro do") ||
-    normalizedTask.includes("what can premiere do")
-  ) {
-    const recommendedTool = describeCapability("public.get_product_capabilities");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.get_product_capabilities"),
-    };
-  }
-
-  if (
-    normalizedTask.includes("will ") && normalizedTask.includes(" run") ||
-    normalizedTask.includes("can be installed") ||
-    normalizedTask.includes("compatible with my") ||
-    normalizedTask.includes("can my") ||
-    normalizedTask.includes("system requirement") ||
-    normalizedTask.includes("os version") ||
-    normalizedTask.includes("os compatibility") ||
-    normalizedTask.includes("need to know if") ||
-    (normalizedTask.includes("install") && (
-      normalizedTask.includes("mac") ||
-      normalizedTask.includes("windows") ||
-      normalizedTask.includes("my machine") ||
-      normalizedTask.includes("my computer") ||
-      normalizedTask.includes("my pc")
-    ))
-  ) {
-    const recommendedTool = describeCapability("public.check_os_compatibility");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "public.check_os_compatibility"),
-    };
-  }
-
-  if (normalizedTask.includes("background")) {
-    const recommendedTool = describeCapability("firefly.change_background");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "firefly.change_background"),
-    };
-  }
-
-  if (normalizedTask.includes("business card")) {
-    const recommendedTool = describeCapability("express.create_business_card");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "express.create_business_card"),
-    };
-  }
-
-  if (normalizedTask.includes("duplicate") || normalizedTask.includes("cleanup")) {
-    const recommendedTool = describeCapability("cc_home.find_duplicates");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "cc_home.find_duplicates"),
-    };
-  }
-
-  if (
-    normalizedTask.includes("plan") ||
-    normalizedTask.includes("pricing") ||
-    normalizedTask.includes("price") ||
-    normalizedTask.includes("adobe plan") ||
-    normalizedTask.includes("compare adobe plans")
-  ) {
-    const recommendedTool = describeCapability("adobe_plans.compare_plan_options");
-    return {
-      recommendedTool,
-      alternatives: toolManifests.filter((tool) => tool.toolName !== "adobe_plans.compare_plan_options"),
-    };
-  }
-
-  return {
-    recommendedTool: null,
-    alternatives: toolManifests,
-  };
-}

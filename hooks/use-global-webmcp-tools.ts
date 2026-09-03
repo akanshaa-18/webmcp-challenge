@@ -4,18 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   describeCapability,
-  findToolsForTask,
   runtimeToolNameForManifest,
   toolManifests,
 } from "@/lib/capability-registry";
+import { getAllTaskTypes } from "@/lib/catalog/capabilities";
 import { toolError } from "@/lib/errors";
 import { userFixture } from "@/lib/fixtures";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
-  findProductForTask,
+  findAppsForFeature,
   getProductCapabilities,
 } from "@/lib/public-intelligence";
-import { buildAdobeWorkflow } from "@/lib/workflow-composer";
 import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
 import { useWebMcpTools } from "@/hooks/use-webmcp-tools";
 import { Surface, ToolManifest } from "@/lib/types";
@@ -87,121 +86,49 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
             runtimeToolName: runtimeToolNameForManifest(manifest.toolName),
           })),
           namingConvention:
-            "Registry uses namespaced manifest IDs (for example public.build_adobe_workflow); WebMCP runtime tools are registered by route as unprefixed names (for example build_adobe_workflow).",
+            "Registry uses namespaced manifest IDs (for example public.find_apps_for_feature); WebMCP runtime tools are registered by route as unprefixed names (for example find_apps_for_feature).",
         },
       }),
     },
     {
-      name: "find_tools_for_task",
-      description: "Find the best capability for a user task before creating a surface handoff.",
-      inputSchema: {
-        type: "object",
-        properties: { task: { type: "string" } },
-        required: ["task"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: { task?: string }) => {
-        if (!input?.task) {
-          return toolError("MISSING_REQUIRED_CONTEXT", "The task field is required.");
-        }
-        const runtime = getMissionRuntime();
-        const result = findToolsForTask(input.task);
-        if (!result.recommendedTool) {
-          return toolError("UNKNOWN_CAPABILITY", "No matching capability found for this task.");
-        }
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => {
-            const recommended = result.recommendedTool?.toolName;
-            const nextDiscovered = recommended && !passport.discoveredCapabilities.includes(recommended)
-              ? [...passport.discoveredCapabilities, recommended]
-              : passport.discoveredCapabilities;
-            return {
-              ...passport,
-              requirements: input.task ? [input.task] : passport.requirements,
-              discoveredCapabilities: nextDiscovered,
-              selectedDestination:
-                result.recommendedTool?.destinationRoute ?? result.recommendedTool?.destinationUrl,
-            };
-          });
-        }
-        return {
-          status: "ok",
-          data: {
-            recommendedTool: result.recommendedTool.toolName,
-            ownerSurface: result.recommendedTool.ownerSurface,
-            destination:
-              result.recommendedTool.destinationRoute ?? result.recommendedTool.destinationUrl ?? null,
-            requiredContext: result.recommendedTool.requiredContext,
-            alternatives: result.alternatives.map((tool) => tool.toolName),
-          },
-        };
-      },
-    },
-    {
-      name: "build_adobe_workflow",
+      name: "find_apps_for_feature",
       description:
-        "Compose a multi-step Adobe workflow for a user's creative goal using publicly described Adobe capabilities and their dependencies.",
+        "Find which Adobe app handles a feature and what apps can follow it in a multi-step sequence. " +
+        "Use this when the user describes a capability or feature rather than a full task. " +
+        "Returns ranked app matches with continuations for cross-app workflows. " +
+        "If no match is found, the response includes availableTaskTypes listing all known feature strings.",
       inputSchema: {
         type: "object",
-        properties: { task: { type: "string" } },
-        required: ["task"],
+        properties: {
+          feature: {
+            type: "string",
+            description:
+              "A feature or task description. Known task types: " +
+              getAllTaskTypes().join(", ") +
+              ". Other phrasing may also match via partial keyword scoring.",
+          },
+        },
+        required: ["feature"],
       },
       annotations: { readOnlyHint: true },
-      execute: (input: { task?: string }) => {
-        const runtime = getMissionRuntime();
-        const result = buildAdobeWorkflow(input?.task, runtime?.intentPassport.userConstraints ?? []);
-        if (result.status !== "ok") {
-          return result;
-        }
-
-        if (runtime) {
-          runtime.updateIntentPassport((passport) => ({
-            ...passport,
-            userGoal: input?.task ?? passport.userGoal,
-            requirements: result.data.steps.map((step) => step.capability),
-            discoveredCapabilities: Array.from(
-              new Set([
-                ...passport.discoveredCapabilities,
-                "public.build_adobe_workflow",
-                ...result.data.steps.map((step) => step.capabilityId),
-              ]),
-            ),
-            selectedProducts: result.data.steps.map((step) => step.productId),
-            selectedWorkflowId: result.data.workflowId,
-            selectedWorkflowStep: result.data.steps[0]?.capabilityId,
-            recommendedWorkflow: result.data.steps.map((step) => step.productName).join(" → "),
-            selectedDestination: result.data.recommendedStart.destinationUrl,
-          }));
-        }
-
-        return result;
-      },
-    },
-    {
-      name: "find_product_for_task",
-      description: "Recommend Adobe products for a task using the public reference snapshot catalog.",
-      inputSchema: {
-        type: "object",
-        properties: { task: { type: "string" } },
-        required: ["task"],
-      },
-      annotations: { readOnlyHint: true },
-      execute: (input: { task?: string }) => {
-        const result = findProductForTask(input?.task);
-        if (result.status !== "ok") {
-          return result;
-        }
+      execute: (input: { feature?: string }) => {
+        const result = findAppsForFeature(input?.feature);
+        if (result.status !== "ok") return result;
 
         const runtime = getMissionRuntime();
         if (runtime) {
           runtime.updateIntentPassport((passport) => ({
             ...passport,
-            requirements: input?.task ? [input.task] : passport.requirements,
-            discoveredCapabilities: passport.discoveredCapabilities.includes("public.find_product_for_task")
-              ? passport.discoveredCapabilities
-              : [...passport.discoveredCapabilities, "public.find_product_for_task"],
-            selectedProducts: result.data.recommendations.map((recommendation) => recommendation.productId),
-            selectedDestination: result.data.recommendations[0]?.destinationUrl ?? passport.selectedDestination,
+            requirements: input?.feature ? [input.feature] : passport.requirements,
+            discoveredCapabilities: Array.from(new Set([
+              ...passport.discoveredCapabilities,
+              ...result.data.matches.map((m) => m.capabilityId),
+            ])),
+            selectedProducts: Array.from(new Set([
+              ...passport.selectedProducts,
+              ...result.data.matches.map((m) => m.productId),
+            ])),
+            selectedDestination: result.data.matches[0]?.destinationUrl ?? passport.selectedDestination,
           }));
         }
 

@@ -10,14 +10,29 @@ import { plansFixture, userFixture } from "@/lib/fixtures";
 import { useGlobalWebMcpTools } from "@/hooks/use-global-webmcp-tools";
 import { getMissionRuntime } from "@/lib/mission-runtime";
 import {
+  findAppsForFeature,
   findProductForTask,
   getProductCapabilities,
 } from "@/lib/public-intelligence";
+import { getCapabilityById, rankCapabilitiesForTask } from "@/lib/catalog/capabilities";
 import { fetchOsRanges, isCompatible, PRODUCT_TO_SAP } from "@/lib/ffc-os-compatibility";
 import { comparePlanOptions } from "@/lib/plans";
-import { buildAdobeWorkflow } from "@/lib/workflow-composer";
 
-type WorkflowState = ReturnType<typeof buildAdobeWorkflow>;
+type WorkflowStep = {
+  order: number;
+  productId: string;
+  productName: string;
+  capabilityId: string;
+  capability: string;
+  why: string;
+  requires: string[];
+  produces: string;
+  destinationUrl: string;
+};
+
+type WorkflowState =
+  | { status: "ok"; data: { workflowId: string; steps: WorkflowStep[]; recommendedStart: { destinationUrl: string } } }
+  | { status: "error"; code: string; message: string };
 
 const DEFAULT_GOAL =
   "I want to remove the background from a product image and turn it into an Instagram post.";
@@ -133,30 +148,67 @@ export function FrontDoorSurface() {
   };
 
   const composeWorkflow = () => {
-    const runtime = getMissionRuntime();
-    const result = buildAdobeWorkflow(goal, runtime?.intentPassport.userConstraints ?? []);
-    setWorkflowResult(result);
-    if (result.status !== "ok" || !runtime) {
+    const result = findAppsForFeature(goal);
+
+    if (result.status !== "ok" || result.data.matches.length === 0) {
+      setWorkflowResult({
+        status: "error",
+        code: result.status === "error" ? result.code : "NO_MATCH",
+        message: result.status === "error" ? result.message : "No Adobe apps matched this goal.",
+      });
       return;
     }
 
-    runtime.updateIntentPassport((passport) => ({
-      ...passport,
-      userGoal: goal,
-      requirements: result.data.steps.map((step) => step.capability),
-      discoveredCapabilities: Array.from(
-        new Set([
-          ...passport.discoveredCapabilities,
-          "public.build_adobe_workflow",
-          ...result.data.steps.map((step) => step.capabilityId),
-        ]),
-      ),
-      selectedProducts: result.data.steps.map((step) => step.productId),
-      selectedWorkflowId: result.data.workflowId,
-      selectedWorkflowStep: result.data.steps[0]?.capabilityId,
-      recommendedWorkflow: result.data.steps.map((step) => step.productName).join(" → "),
-      selectedDestination: result.data.recommendedStart.destinationUrl,
-    }));
+    const top = result.data.matches[0];
+
+    // Continuations are alternatives — pick the one that best matches the goal.
+    // If none score, the workflow is standalone (no forced next step).
+    let bestContinuation: typeof top.continuations[0] | null = null;
+    if (top.continuations.length > 0) {
+      const scored = rankCapabilitiesForTask(goal)
+        .filter((cap) => top.continuations.some((c) => c.capabilityId === cap.id));
+      if (scored.length > 0) {
+        bestContinuation = top.continuations.find((c) => c.capabilityId === scored[0].id) ?? null;
+      }
+    }
+
+    const allSteps = [top, ...(bestContinuation ? [bestContinuation] : [])];
+
+    const steps: WorkflowStep[] = allSteps.map((step, index) => {
+      const cap = getCapabilityById(step.capabilityId);
+      return {
+        order: index + 1,
+        productId: step.productId,
+        productName: step.productName,
+        capabilityId: step.capabilityId,
+        capability: step.capabilityName,
+        why: cap?.description ?? ("why" in step ? (step as { why: string }).why : ""),
+        requires: cap?.inputs ?? [],
+        produces: cap?.outputs?.[0] ?? "",
+        destinationUrl: step.destinationUrl,
+      };
+    });
+
+    const workflowId = "wf-" + steps.map((s) => s.productId).join("-");
+    const workflowData = { workflowId, steps, recommendedStart: { destinationUrl: steps[0].destinationUrl } };
+    setWorkflowResult({ status: "ok", data: workflowData });
+
+    const runtime = getMissionRuntime();
+    if (runtime) {
+      runtime.updateIntentPassport((passport) => ({
+        ...passport,
+        userGoal: goal,
+        requirements: steps.map((s) => s.capability),
+        discoveredCapabilities: Array.from(
+          new Set([...passport.discoveredCapabilities, ...steps.map((s) => s.capabilityId)]),
+        ),
+        selectedProducts: steps.map((s) => s.productId),
+        selectedWorkflowId: workflowId,
+        selectedWorkflowStep: steps[0]?.capabilityId,
+        recommendedWorkflow: steps.map((s) => s.productName).join(" → "),
+        selectedDestination: steps[0]?.destinationUrl,
+      }));
+    }
   };
 
   const continueWithHandoff = () => {
@@ -317,8 +369,8 @@ export function FrontDoorSurface() {
           <h3 className="frontdoor-subheading">Activity</h3>
           <div className="frontdoor-activity-list">
             <p>✓ Goal understood</p>
-            <p>{passport.discoveredCapabilities.includes("public.find_product_for_task") ? "✓" : "○"} Product capability discovered</p>
-            <p>{passport.discoveredCapabilities.includes("public.build_adobe_workflow") ? "✓" : "○"} Workflow composed</p>
+            <p>{passport.discoveredCapabilities.length > 0 ? "✓" : "○"} Capabilities discovered</p>
+            <p>{passport.selectedProducts.length > 0 ? "✓" : "○"} Apps identified</p>
             <p>{passport.selectedDestination ? "✓" : "○"} Start destination identified</p>
             <p>{passport.handoffTrail.length > 0 ? "✓" : "○"} Structured handoff prepared</p>
           </div>

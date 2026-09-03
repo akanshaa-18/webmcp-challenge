@@ -1,5 +1,7 @@
 import {
   getCapabilitiesByProductId,
+  getCapabilityContinuations,
+  getAllTaskTypes,
   hasKnownProduct,
   rankCapabilitiesForTask,
 } from "@/lib/catalog/capabilities";
@@ -44,6 +46,64 @@ function hasDeviceData(device?: CompatibilityDeviceContext): boolean {
       device.processor ||
       device.gpu,
   );
+}
+
+export function findAppsForFeature(feature?: string) {
+  if (!feature?.trim()) {
+    return toolError("MISSING_REQUIRED_CONTEXT", "The feature field is required.");
+  }
+
+  const rankedCapabilities = rankCapabilitiesForTask(feature);
+  if (rankedCapabilities.length === 0) {
+    return {
+      status: "error" as const,
+      code: "UNKNOWN_FEATURE",
+      message: "No Adobe app capability matched this feature in the public reference catalog.",
+      availableTaskTypes: getAllTaskTypes(),
+    };
+  }
+
+  const seenProducts = new Set<string>();
+  const matches = rankedCapabilities
+    .filter((capability) => {
+      if (seenProducts.has(capability.productId)) return false;
+      seenProducts.add(capability.productId);
+      return true;
+    })
+    .slice(0, 3)
+    .map((capability, index) => {
+      const product = getPublicProductById(capability.productId);
+      if (!product) return null;
+      return {
+        rank: index + 1,
+        productId: product.id,
+        productName: product.name,
+        capabilityId: capability.id,
+        capabilityName: capability.name,
+        why: capability.description,
+        destinationUrl: capability.destinationUrl,
+        continuations: getCapabilityContinuations(capability.id),
+      };
+    })
+    .filter((match): match is NonNullable<typeof match> => match !== null);
+
+  if (matches.length === 0) {
+    return {
+      status: "error" as const,
+      code: "UNKNOWN_FEATURE",
+      message: "No Adobe app capability matched this feature in the public reference catalog.",
+      availableTaskTypes: getAllTaskTypes(),
+    };
+  }
+
+  return {
+    status: "ok" as const,
+    data: {
+      feature,
+      matches,
+      dataSource: "public_reference_snapshot" as const,
+    },
+  };
 }
 
 export function findProductForTask(task?: string) {
