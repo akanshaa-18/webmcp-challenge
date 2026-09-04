@@ -32,9 +32,14 @@ export const CREATIVE_GOALS: CreativeGoal[] = [
       { productName: "Photoshop", initials: "Ps", color: "#001AFF", task: "Refine & composite", receives: "Generated visuals", produces: "Polished composition" },
       { productName: "Express", initials: "Ex", color: "#FF0099", task: "Adapt to social formats", receives: "Polished composition", produces: "Social-ready posts" },
     ],
-    // generate: primary driver; publish: the clear output
     capabilityIds: ["generate", "publish"],
-    planIds: ["cc-pro-in", "firefly-pro-in"],
+    planIds: [
+      "cc-pro-in", "cc-pro-us", "cc-pro-teams",
+      "cc-standard-in", "cc-standard-us", "cc-standard-teams",
+      "firefly-pro-in", "firefly-standard", "firefly-pro-plus", "firefly-premium",
+      "adobe-all-apps-in", "adobe-express-in", "adobe-express-us",
+      "stock-ai-studio", "stock",
+    ],
   },
   {
     id: "product-photography",
@@ -48,9 +53,15 @@ export const CREATIVE_GOALS: CreativeGoal[] = [
       { productName: "Photoshop", initials: "Ps", color: "#001AFF", task: "Composite & retouch", receives: "Product photo + scenes", produces: "Hero shot" },
       { productName: "Illustrator", initials: "Ai", color: "#FF9B00", task: "Add brand overlays", receives: "Hero shot", produces: "Campaign-ready asset" },
     ],
-    // enhance: core retouching step; edit: Photoshop compositing
     capabilityIds: ["enhance", "edit"],
-    planIds: ["cc-pro-in", "adobe-photography-in"],
+    planIds: [
+      "cc-pro-in", "cc-pro-us", "cc-pro-teams",
+      "cc-standard-in", "cc-standard-us", "cc-standard-teams",
+      "adobe-photography-in", "photography-us",
+      "photoshop-in", "photoshop-us", "photoshop-teams",
+      "lightroom-in", "lightroom-us", "lightroom-teams", "lightroom-classic-in",
+      "substance-3d-in", "substance-3d-us",
+    ],
   },
   {
     id: "brand-identity",
@@ -64,9 +75,21 @@ export const CREATIVE_GOALS: CreativeGoal[] = [
       { productName: "Illustrator", initials: "Ai", color: "#FF9B00", task: "Build vector brand system", receives: "Visual concepts", produces: "Brand kit (logo, marks)" },
       { productName: "Express", initials: "Ex", color: "#FF0099", task: "Create brand templates", receives: "Brand kit", produces: "Reusable brand assets" },
     ],
-    // design: Illustrator is central; publish: Express templates
     capabilityIds: ["design", "publish"],
-    planIds: ["cc-pro-in", "adobe-all-apps-in"],
+    planIds: [
+      "cc-pro-in", "cc-pro-us", "cc-pro-teams",
+      "cc-standard-in", "cc-standard-us", "cc-standard-teams",
+      "adobe-all-apps-in",
+      "illustrator-in", "illustrator-us", "illustrator-teams",
+      "indesign-in", "indesign-us", "indesign-teams",
+      "acrobat-express-in", "acrobat-express-us", "acrobat-express-teams",
+      "acrobat-pro-in", "acrobat-pro-us", "acrobat-pro-teams",
+      "acrobat-standard-in", "acrobat-standard-us",
+      "acrobat-studio-in", "acrobat-studio-us", "acrobat-studio-teams",
+      "adobe-express-in", "adobe-express-us",
+      "ai-assistant-acrobat-in", "ai-assistant-acrobat-us",
+      "cc-edu-apac", "cc-edu-us",
+    ],
   },
   {
     id: "marketing-video",
@@ -80,9 +103,16 @@ export const CREATIVE_GOALS: CreativeGoal[] = [
       { productName: "Photoshop", initials: "Ps", color: "#001AFF", task: "Create stills & graphics", receives: "Visual elements", produces: "Video-ready frames" },
       { productName: "Premiere Pro", initials: "Pr", color: "#9933FF", task: "Edit & publish video", receives: "Video-ready frames", produces: "Published video" },
     ],
-    // video: the defining capability; edit: Photoshop pre-production
     capabilityIds: ["video", "edit"],
-    planIds: ["cc-pro-in", "premiere-in"],
+    planIds: [
+      "cc-pro-in", "cc-pro-us", "cc-pro-teams",
+      "cc-standard-in", "cc-standard-us", "cc-standard-teams",
+      "premiere-in", "premiere-us", "premiere-teams",
+      "after-effects-in", "after-effects-us", "after-effects-teams",
+      "animate-in", "animate-us", "animate-teams",
+      "audition-in", "audition-us", "audition-teams",
+      "frameio-teams",
+    ],
   },
   {
     id: "web-campaign",
@@ -96,9 +126,19 @@ export const CREATIVE_GOALS: CreativeGoal[] = [
       { productName: "Photoshop", initials: "Ps", color: "#001AFF", task: "Composite & optimize", receives: "Visual variations", produces: "Web-optimized assets" },
       { productName: "Express", initials: "Ex", color: "#FF0099", task: "Build ad templates", receives: "Web-optimized assets", produces: "Campaign asset library" },
     ],
-    // generate: Firefly drives it; design: layout and templating
     capabilityIds: ["generate", "design"],
-    planIds: ["cc-pro-in", "adobe-all-apps-in"],
+    planIds: [
+      "cc-pro-in", "cc-pro-us", "cc-pro-teams",
+      "cc-standard-in", "cc-standard-us", "cc-standard-teams",
+      "adobe-all-apps-in",
+      "illustrator-in", "illustrator-us", "illustrator-teams",
+      "photoshop-in", "photoshop-us", "photoshop-teams",
+      "acrobat-express-in", "acrobat-express-us", "acrobat-express-teams",
+      "adobe-express-in", "adobe-express-us",
+      "firefly-pro-in", "firefly-standard", "firefly-pro-plus", "firefly-premium",
+      "stock-ai-studio",
+      "dreamweaver-in", "dreamweaver-us",
+    ],
   },
 ];
 

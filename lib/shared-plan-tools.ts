@@ -100,7 +100,7 @@ export function createPlanActionTools() {
           }
           recordSuccess(`Live price resolved: ${resultData?.formattedPrice || "price"}`);
         } else if (result.status === "error") {
-          recordError("PRICING_FAILED", (result as any).data?.reason || "Unknown error");
+          recordError("PRICING_FAILED", (result as any).message || (result as any).data?.reason || "Unknown error");
         }
         return result;
       },
@@ -167,7 +167,7 @@ export function createPlanActionTools() {
             recordSuccess(`Plan recommendation: ${resultData.recommendedPlan.name}`);
           }
         } else if (result.status === "error") {
-          recordError("COMPARE_FAILED", (result as any).data?.reason || "Unknown error");
+          recordError("COMPARE_FAILED", (result as any).message || (result as any).data?.reason || "Unknown error");
         }
         return result;
       },

@@ -47,6 +47,8 @@ interface ResolvePriceInput {
   osi?: string;
   /** MAS fragment ID from the plan fixture — used when osi is not available */
   fragmentId?: string;
+  /** WCS promotion code — applied when the plan has a promotional price (e.g. student discounts) */
+  promotionCode?: string;
 }
 
 interface ResolvePriceOptions {
@@ -61,12 +63,17 @@ interface CacheEntry {
 
 const MAS_FRAGMENT_ENDPOINT = "https://www.adobe.com/mas/io/fragment";
 const WCS_ARTIFACT_ENDPOINT = "https://www.adobe.com/web_commerce_artifact";
-const PUBLIC_WEB_API_KEY = "wcms-commerce-ims-ro-user-milo";
+const PUBLIC_WEB_API_KEY = "wcms-commerce-ims-ro-user-milo-cc";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 const COUNTRY_TO_LOCALE: Record<string, string> = {
   IN: "en_IN",
   US: "en_US",
+  GB: "en_GB",
+  AU: "en_AU",
+  CA: "en_CA",
+  DE: "de_DE",
+  FR: "fr_FR",
 };
 
 
@@ -239,6 +246,7 @@ async function fetchWcsOffer(
   locale: string,
   fetchImpl: FetchLike,
   signal?: AbortSignal,
+  promotionCode?: string,
 ) {
   const url = new URL(WCS_ARTIFACT_ENDPOINT);
   url.searchParams.set("offer_selector_ids", osi);
@@ -247,6 +255,9 @@ async function fetchWcsOffer(
   url.searchParams.set("landscape", "PUBLISHED");
   url.searchParams.set("api_key", PUBLIC_WEB_API_KEY);
   url.searchParams.set("language", "MULT");
+  if (promotionCode) {
+    url.searchParams.set("promotion_code", promotionCode);
+  }
   return fetchImpl(url, { method: "GET", signal });
 }
 
@@ -305,7 +316,7 @@ export async function resolvePlanPrice(
     return unavailable(input.planId, country || "UNKNOWN", input.locale ?? "unknown", "unsupported_region");
   }
 
-  const cacheKey = `${input.planId}|${country}|${locale}`;
+  const cacheKey = `${input.planId}|${country}|${locale}|${input.promotionCode ?? ""}`;
   const now = Date.now();
   const existing = cache.get(cacheKey);
   if (existing && existing.expiresAt > now) {
@@ -322,7 +333,7 @@ export async function resolvePlanPrice(
   if (input.osi) {
     let pricingResponse: Response;
     try {
-      pricingResponse = await fetchWcsOffer(input.osi, country, locale, fetchImpl, options.signal);
+      pricingResponse = await fetchWcsOffer(input.osi, country, locale, fetchImpl, options.signal, input.promotionCode);
     } catch {
       return storeAndReturn(unavailable(input.planId, country, locale, "upstream_unavailable"));
     }
@@ -386,7 +397,7 @@ export async function resolvePlanPrice(
 
   let pricingResponse: Response;
   try {
-    pricingResponse = await fetchWcsOffer(osi, country, locale, fetchImpl, options.signal);
+    pricingResponse = await fetchWcsOffer(osi, country, locale, fetchImpl, options.signal, input.promotionCode);
   } catch {
     return storeAndReturn(unavailable(input.planId, country, locale, "upstream_unavailable"));
   }
