@@ -10,7 +10,7 @@ export function PremiumHeader() {
 
   return (
     <header className="adobe-header">
-      <div className="adobe-header-logo">Creative Community</div>
+      <div className="adobe-header-logo">Creative Community Orchestrator</div>
       <nav className="adobe-header-nav">
         <a onClick={() => scrollToSection("goals")} style={{ cursor: "pointer" }}>
           Goals
