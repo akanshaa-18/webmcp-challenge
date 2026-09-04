@@ -145,6 +145,14 @@ export function PremiumPlansSection({ selectedGoalId }: PremiumPlansSectionProps
   const INITIAL_VISIBLE = 4;
 
   useEffect(() => {
+    if (selectedGoalId) {
+      setShowAllPlans(true);
+    } else {
+      setShowAllPlans(false);
+    }
+  }, [selectedGoalId]);
+
+  useEffect(() => {
     const initial: Record<string, PriceState> = {};
     for (const plan of plansFixture) {
       initial[plan.id] = { status: "loading" };

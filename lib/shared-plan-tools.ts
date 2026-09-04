@@ -108,7 +108,7 @@ export function createPlanActionTools() {
     {
       name: "compare_plan_options",
       description:
-        "Compare Adobe plans against requirements and recommend the lowest-cost qualifying option using live regional pricing. Requires a region (explicit or from earlier in this session) to resolve a price -- returns a missing-context result otherwise. If both `audience` and `student` are supplied and disagree, returns a conflict error instead of guessing.",
+        "Returns all eligible Adobe plans with live regional pricing, includedApps, and capabilities. Call adobe_directory first to map the user's creative needs to specific Adobe products, then use this tool to find which plans include those products. YOU must select the best plan by matching requirements against each candidate's includedApps and capabilities fields -- do not pick by price alone and do not rely on your own knowledge of Adobe products. A plan that covers all requirements at a higher price is better than a cheap plan that covers none. Requires a region (explicit or from earlier in this session) -- returns a missing-context result otherwise. If both `audience` and `student` are supplied and disagree, returns a conflict error instead of guessing.",
       annotations: { readOnlyHint: true },
       inputSchema: {
         type: "object",
@@ -152,20 +152,16 @@ export function createPlanActionTools() {
         );
         if (result.status === "ok") {
           const resultData = (result as any).data;
-          if (resultData?.recommendedPlan) {
-            const runtime = getMissionRuntime();
-            runtime?.updateIntentPassport((passport) => ({
-              ...passport,
-              ...(input?.region ? { region: input.region, regionFromTool: true } : {}),
-              ...(resultData.audience && (input?.audience !== undefined || input?.student !== undefined)
-                ? { audience: resultData.audience }
-                : {}),
-              // Store actual tool result for premium UI
-              comparePlanResult: resultData.recommendedPlan,
-              checkoutUrl: resultData.recommendedPlan?.checkoutUrl ?? passport.checkoutUrl,
-            }));
-            recordSuccess(`Plan recommendation: ${resultData.recommendedPlan.name}`);
-          }
+          const runtime = getMissionRuntime();
+          runtime?.updateIntentPassport((passport) => ({
+            ...passport,
+            ...(input?.region ? { region: input.region, regionFromTool: true } : {}),
+            ...(resultData.audience && (input?.audience !== undefined || input?.student !== undefined)
+              ? { audience: resultData.audience }
+              : {}),
+          }));
+          const pricedCount = resultData?.candidates?.filter((c: any) => c.pricing?.formattedPrice).length ?? 0;
+          recordSuccess(`Returned ${pricedCount} priced candidates for LLM to reason over`);
         } else if (result.status === "error") {
           recordError("COMPARE_FAILED", (result as any).message || (result as any).data?.reason || "Unknown error");
         }

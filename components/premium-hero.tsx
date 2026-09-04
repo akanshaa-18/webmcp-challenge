@@ -8,7 +8,7 @@ export function PremiumHero() {
       {/* Top tagline */}
       <div className="hero-tagline">
         <span className="tagline-icon">✦</span>
-        Creative Mission Control
+        Creative Community Orchestrator
       </div>
 
       {/* Centered headline */}

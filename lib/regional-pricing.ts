@@ -324,8 +324,15 @@ export async function resolvePlanPrice(
   }
 
   const fetchImpl = options.fetchImpl ?? fetch;
+  // Only cache deterministic results — transient upstream failures must not
+  // be cached, otherwise a brief WCS outage locks out pricing for 5 minutes.
   const storeAndReturn = (result: RegionalPriceResult) => {
-    cache.set(cacheKey, { result, expiresAt: now + CACHE_TTL_MS });
+    const isTransient =
+      result.status === "price_unavailable" &&
+      result.data.reason === "upstream_unavailable";
+    if (!isTransient) {
+      cache.set(cacheKey, { result, expiresAt: now + CACHE_TTL_MS });
+    }
     return result;
   };
 
