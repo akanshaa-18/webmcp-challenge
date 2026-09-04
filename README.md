@@ -109,3 +109,89 @@ Public catalog data source label used by the new intelligence tools: **public_re
 ## Upload handling in this prototype
 
 The workflow may carry asset context (for example, "User-provided image"), but this prototype does **not** transfer binary user uploads into external Adobe surfaces. Handoffs preserve structured intent and workflow context only, and users continue in destination products by adding source assets there.
+
+---
+
+## WebMCP Implementation
+
+This project demonstrates **tool discovery and workflow orchestration** using the WebMCP (Web Model Context Protocol) standard:
+
+### Core WebMCP Features Used
+
+1. **Global Tool Discovery** — Agents discover tools registered by Adobe surfaces (Photoshop, Firefly, Express, Premiere Pro, Illustrator)
+2. **Problem-to-Tool Matching** — Keyword-based semantic matching finds relevant tools for user problems
+3. **Workflow Composition** — Multi-step creative workflows are suggested based on user goals and available tools
+4. **Seamless Handoff** — Context-aware URLs redirect users to surfaces with full intent/problem information
+
+### WebMCP Tools Registered
+
+**Global Discovery Tools:**
+- `discover_surface_tools` — List all WebMCP tools available from a specific Adobe surface
+- `recommend_tools_for_problem` — Find tools that solve a user's specific problem (with relevance scoring)
+- `suggest_workflow_from_goal` — Break down creative goals into multi-step workflows across surfaces
+- `get_tool_redirect_url` — Generate redirect URLs to tools with user context
+
+**Surface-Local Tools:**
+- Plans Surface: `get_regional_plans`, `get_plan_capabilities`, `get_plan_price`, `compare_plan_options`
+- Kaftan Demo: `get_project_context`, `search_files`, `get_file_metadata`, `find_duplicates`, `delete_file`
+- Firefly Surface: `change_background`
+- Express Surface: `create_business_card`
+
+### Testing WebMCP Tools
+
+In **ChatGPT's in-app browser** or **Chrome 149+** with WebMCP enabled (chrome://flags/#enable-webmcp-testing):
+
+```
+Example agent interactions:
+1. "What tools does Photoshop have for lighting adjustments?"
+   → Uses discover_surface_tools("Photoshop")
+
+2. "I need to fix mismatched lighting in my composite photo"
+   → Uses recommend_tools_for_problem("lighting mismatch")
+   → Returns: Harmonize tool with 95% relevance match
+
+3. "Clean up product photos, enhance them for a campaign, and create an Instagram post"
+   → Uses suggest_workflow_from_goal(...)
+   → Suggests: Photoshop → Firefly → Express workflow
+
+4. "Take me to the Harmonize tool"
+   → Uses get_tool_redirect_url("harmonize", "Photoshop", context)
+   → Redirects to Photoshop with tool context
+```
+
+### Technical Implementation
+
+- **Tool Registration:** Uses standard WebMCP API (`document.modelContext.registerTool()` and `navigator.modelContext.registerTool()`)
+- **Tool Schema:** Structured `inputSchema` for LLM reasoning about tool capabilities
+- **Security:** Read-only annotations and untrusted content hints on user-input tools
+- **Registry:** Mock registry demonstrates tool discovery pattern (production would query live registry from browser WebMCP API)
+
+### Architecture Highlights
+
+- Tools are registered by **surface** (not globally) — Photoshop registers its own tools, Firefly registers its own, etc.
+- Discovery layer **matches problems to tool descriptions** — no complex ML, just keyword-based matching with relevance scoring
+- Workflows are **composed from available tools** — suggests sequences based on what tools each surface exposes
+- Handoffs include **full context** — user's problem statement and workflow goals passed to destination surface via URL parameters
+
+### Demo Flow (Meera's Story)
+
+1. **[0:55–1:05]** Student asks: "How do I match this lighting in my composite?"
+   - Agent uses `recommend_tools_for_problem("lighting doesn't match")`
+   - Discovers Harmonize in Photoshop (95% relevance)
+   
+2. **[2:07–2:25]** Student says: "Clean up photos → premium campaign look → Instagram"
+   - Agent uses `suggest_workflow_from_goal(...)`
+   - Recommends: Photoshop (cleanup) → Firefly (campaign background) → Express (social format)
+   
+3. **[2:25–2:34]** Student clicks "Try Harmonize"
+   - Agent uses `get_tool_redirect_url("harmonize", "Photoshop", context)`
+   - Opens Photoshop with Harmonize tool pre-selected
+
+### Production Readiness
+
+- ✅ All tools follow WebMCP specification
+- ✅ Proper input validation and error handling
+- ✅ Security annotations for untrusted content
+- ✅ Signal-based cancellation for clean cleanup
+- ✅ Context preservation across handoffs
+- ⚠️ Mock registry — production would query live Adobe WebMCP registry
