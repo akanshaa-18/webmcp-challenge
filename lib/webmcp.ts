@@ -7,7 +7,11 @@ export interface WebMcpTool {
   description: string;
   inputSchema?: Record<string, unknown>;
   annotations?: {
+    title?: string;
     readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    idempotentHint?: boolean;
+    openWorldHint?: boolean;
     untrustedContentHint?: boolean;
   };
   execute: ExecuteFn;
