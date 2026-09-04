@@ -53,6 +53,8 @@ export interface Plan {
   fragmentId?: string;
   /** Adobe Commerce product alias — used to construct checkout segmentation URL */
   commerceAlias?: string;
+  /** WCS promotion code — applied to the WCS request to get promotional pricing */
+  promotionCode?: string;
   /** @deprecated Capability matching is now done by the LLM using MAS data */
   capabilities?: string[];
   /** @deprecated App lists are now fetched dynamically from MAS fragments */

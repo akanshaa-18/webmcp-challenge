@@ -210,6 +210,7 @@ export async function getPlanPrice(
     country: targetRegion,
     osi: plan.osi,
     fragmentId: plan.fragmentId,
+    promotionCode: plan.promotionCode,
   });
 
   if (livePrice.status !== "ok") {
