@@ -99,7 +99,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
       name: "adobe_directory",
       description:
         "Returns the full Adobe capability catalog. " +
-        "Call this first when the user asks which Adobe app to use for a task. " +
+        "Call this first when the user asks which Adobe app to use for a task, OR before calling compare_plan_options to map the user's creative needs to specific Adobe products. " +
         "After calling it, scan EVERY capability's taskTypes array and description to find the closest semantic match to the user's request. " +
         "Do NOT default to Firefly or any other product based on prior knowledge — always base your recommendation on the taskTypes and description fields in the response.",
       annotations: { readOnlyHint: true },

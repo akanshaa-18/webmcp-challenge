@@ -148,9 +148,9 @@ describe("plans tools logic", () => {
       throw new Error("Expected deterministic comparison result.");
     }
 
-    const recommended = result.data.recommendedPlan;
-    expect(recommended).not.toBeNull();
-    expect(recommended?.planId).toBe("adobe-student-cc-in");
+    const studentCandidate = result.data.candidates.find((c) => c.planId === "adobe-student-cc-in");
+    expect(studentCandidate).toBeDefined();
+    expect((studentCandidate as any)?.pricing?.formattedPrice).toBeDefined();
     expect(result.data.contextSource).toEqual({ region: "explicit", audience: "explicit" });
 
     const rerun = await comparePlanOptions(plansFixture, {
@@ -161,7 +161,8 @@ describe("plans tools logic", () => {
     if ("status" in rerun && rerun.status === "error") {
       throw new Error("Expected deterministic comparison result.");
     }
-    expect(rerun.data.recommendedPlan?.planId).toBe(recommended?.planId);
+    const rerunStudent = rerun.data.candidates.find((c) => c.planId === "adobe-student-cc-in");
+    expect(rerunStudent).toBeDefined();
     expect(rerun.data.dataSource).toBe("live_regional_pricing");
   });
 
@@ -175,8 +176,9 @@ describe("plans tools logic", () => {
       throw new Error("Expected a US recommendation -- plan qualification must not be region-gated.");
     }
     expect(result.data.region).toBe("US");
-    expect(result.data.recommendedPlan?.planId).toBe("adobe-student-cc-in");
-    expect(result.data.recommendedPlan?.pricing).toMatchObject({ country: "US", currency: "USD" });
+    const usCandidate = result.data.candidates.find((c) => c.planId === "adobe-student-cc-in");
+    expect(usCandidate).toBeDefined();
+    expect((usCandidate as any)?.pricing).toMatchObject({ country: "US", currency: "USD" });
     expect(result.data.dataSource).toBe("live_regional_pricing");
   });
 
@@ -190,7 +192,7 @@ describe("plans tools logic", () => {
       throw new Error("Expected deterministic comparison result.");
     }
     expect(result.data.audience).toBe("student");
-    expect(result.data.recommendedPlan?.planId).toBe("adobe-student-cc-in");
+    expect(result.data.candidates.find((c) => c.planId === "adobe-student-cc-in")).toBeDefined();
   });
 
   it("conflicting audience and student inputs return an explicit error instead of silently choosing", async () => {
@@ -218,7 +220,7 @@ describe("plans tools logic", () => {
     // Student plan is excluded by audience filtering, so it won't appear in candidates at all
     const studentPlanCandidate = result.data.candidates.find((c) => c.planId === "adobe-student-cc-in");
     expect(studentPlanCandidate).toBeUndefined();
-    expect(result.data.recommendedPlan?.planId).not.toBe("adobe-student-cc-in");
+    expect(result.data.candidates.find((c) => c.planId === "adobe-student-cc-in")).toBeUndefined();
   });
 
   it("legacy student:false boolean also excludes the dedicated student plan", async () => {
@@ -275,7 +277,7 @@ describe("plans tools logic", () => {
     if (result.status === "error") {
       throw new Error("Expected comparison output.");
     }
-    expect(result.data.recommendedPlan?.planId).toBe("adobe-student-cc-in");
+    expect(result.data.candidates.find((c) => c.planId === "adobe-student-cc-in" && (c as any).pricing?.formattedPrice)).toBeDefined();
     expect(result.data.candidates.some(
       (candidate) =>
         candidate.planId === "adobe-all-apps-in"
@@ -308,7 +310,7 @@ describe("plans tools logic", () => {
     if (result.status === "error") {
       throw new Error("Expected comparison output.");
     }
-    expect(result.data.recommendedPlan).toBeNull();
+    expect(result.data.candidates.every((c) => !(c as any).pricing?.formattedPrice)).toBe(true);
     expect(result.data.candidates.some(
       (candidate) =>
         "pricing" in candidate

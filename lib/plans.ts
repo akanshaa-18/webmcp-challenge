@@ -290,6 +290,8 @@ export async function comparePlanOptions(
     name: string;
     billingPeriod: string;
     studentEligible: boolean;
+    includedApps: string[] | undefined;
+    capabilities: string[] | undefined;
     checkoutUrl: string;
     pricing: {
       planId: string;
@@ -313,6 +315,8 @@ export async function comparePlanOptions(
         name: entry.plan.name,
         billingPeriod: entry.plan.billingPeriod,
         studentEligible: entry.plan.studentEligible,
+        includedApps: entry.plan.includedApps,
+        capabilities: entry.plan.capabilities,
         checkoutUrl: entry.plan.commerceAlias
           ? `https://commerce.adobe.com/store/segmentation?pa=${entry.plan.commerceAlias}&co=${region}&lang=en&cli=creative&ctx=if`
           : `https://www.adobe.com/creativecloud/plans.html`,
@@ -330,8 +334,12 @@ export async function comparePlanOptions(
       name: entry.plan.name,
       billingPeriod: entry.plan.billingPeriod,
       studentEligible: entry.plan.studentEligible,
+      includedApps: entry.plan.includedApps,
+      capabilities: entry.plan.capabilities,
       checkoutUrl: `https://www.adobe.com/creativecloud/plans.html`,
-      pricing: entry.price.status === "price_unavailable" ? entry.price.data : { planId: entry.plan.id, region, reason: "contract_error" },
+      pricing: entry.price.status === "price_unavailable"
+        ? entry.price.data
+        : { planId: entry.plan.id, region, country: region, locale: "", reason: "contract_error" as const, source: "live_regional_pricing" as const, retrievedAt: new Date().toISOString() },
     };
   });
 
@@ -343,7 +351,6 @@ export async function comparePlanOptions(
       student: audience === "student" ? true : audience === "individual" ? false : null,
       requirements: input.requirements,
       candidates,
-      recommendedPlan: pricedPlans[0] ?? null,
       dataSource: "live_regional_pricing",
       contextSource: { region: regionSource, audience: audienceSource },
     },
