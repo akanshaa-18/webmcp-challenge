@@ -46,10 +46,21 @@ export interface Plan {
   supportedRegions: string[];
   audience: string;
   billingPeriod: string;
-  includedApps: string[];
-  capabilities: string[];
-  generativeCredits: number;
   studentEligible: boolean;
+  /** WCS offer selector ID — used for live pricing via web_commerce_artifact API */
+  osi?: string;
+  /** MAS fragment ID — used for rich card display data via mas/io/fragment API */
+  fragmentId?: string;
+  /** Adobe Commerce product alias — used to construct checkout segmentation URL */
+  commerceAlias?: string;
+  /** WCS promotion code — applied to the WCS request to get promotional pricing */
+  promotionCode?: string;
+  /** @deprecated Capability matching is now done by the LLM using MAS data */
+  capabilities?: string[];
+  /** @deprecated App lists are now fetched dynamically from MAS fragments */
+  includedApps?: string[];
+  /** @deprecated Credits info is available from MAS fragment card data */
+  generativeCredits?: number;
 }
 
 export interface Mission {

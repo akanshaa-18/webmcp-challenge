@@ -10,16 +10,16 @@ export function PremiumHeader() {
 
   return (
     <header className="adobe-header">
-      <div className="adobe-header-logo">Creative Community</div>
+      <div className="adobe-header-logo">Creative Community Orchestrator</div>
       <nav className="adobe-header-nav">
-        <a onClick={() => scrollToSection("products")} style={{ cursor: "pointer" }}>
-          Products
-        </a>
-        <a onClick={() => scrollToSection("capabilities")} style={{ cursor: "pointer" }}>
-          Capabilities
+        <a onClick={() => scrollToSection("goals")} style={{ cursor: "pointer" }}>
+          Goals
         </a>
         <a onClick={() => scrollToSection("workflows")} style={{ cursor: "pointer" }}>
           Workflows
+        </a>
+        <a onClick={() => scrollToSection("capabilities")} style={{ cursor: "pointer" }}>
+          Capabilities
         </a>
         <a onClick={() => scrollToSection("plans")} style={{ cursor: "pointer" }}>
           Plans
