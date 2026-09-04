@@ -498,7 +498,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         },
         required: ["problem"],
       },
-      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      annotations: { readOnlyHint: true },
       execute: (input: { problem?: string; surfaceFilter?: string }) => {
         if (!input?.problem) {
           return toolError("MISSING_PROBLEM", "problem description is required");
@@ -536,7 +536,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         },
         required: ["goal"],
       },
-      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      annotations: { readOnlyHint: true },
       execute: (input: { goal?: string }) => {
         if (!input?.goal) {
           return toolError("MISSING_GOAL", "goal is required");
@@ -582,7 +582,7 @@ export function useGlobalWebMcpTools(currentSurface: Surface, currentRoute: stri
         },
         required: ["toolName", "surface"],
       },
-      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      annotations: { readOnlyHint: true },
       execute: (input: { toolName?: string; surface?: string; context?: string }) => {
         if (!input?.toolName || !input?.surface) {
           return toolError("MISSING_PARAMS", "toolName and surface are required");

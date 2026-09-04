@@ -150,7 +150,7 @@ export function CCHomeSurface({ route, surface }: CCHomeSurfaceProps) {
         name: "delete_file",
         description:
           "Delete a safe duplicate file only after explicit human UI approval. First call returns confirmation_required and creates a pending approval record; after Meera approves in UI, call again with confirmationId.",
-        annotations: { readOnlyHint: false },
+        annotations: { readOnlyHint: false, destructiveHint: true },
         inputSchema: {
           type: "object",
           properties: {
